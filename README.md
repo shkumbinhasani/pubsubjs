@@ -24,9 +24,10 @@ import {z} from "zod"
 ## Adapters
 This library currently supports the following adapters:
 
-AWS SNS
-Kafka
-React
+1. [ ] AWS SNS
+2. [ ] Kafka
+3. [ ] React
+
 Each adapter has its own set of options and methods, but they all provide the same interface for working with publish/subscribe event pattern.
 
 To use an adapter, you simply need to import it and initialize it with the required options. Once the adapter is initialized, you can use its subscribe and publish methods to handle events.
