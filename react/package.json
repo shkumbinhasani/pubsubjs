@@ -1,0 +1,42 @@
+{
+  "name": "@pubsubjs/react",
+  "license": "MIT",
+  "version": "0.0.1-build-01",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsup index.ts --format cjs,esm --dts",
+    "lint": "tsc"
+  },
+  "peerDependencies": {
+    "@pubsubjs/core": ">=0.0.1",
+    "zod": ">=3.0.0",
+    "react": ">=17.0.0"
+  },
+  "devDependencies": {
+    "@pubsubjs/core": "link:..\\core",
+    "tsup": "^6.6.3",
+    "typescript": "^4.9.5",
+    "zod": "^3.20.6",
+    "react": "17.0.0",
+    "@types/react": "17.0.0"
+  },
+  "description": "The universal javascript way of publish subscribe pattern",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shkumbinhasani/pubsubjs.git"
+  },
+  "keywords": [
+    "pubsub",
+    "sns",
+    "event",
+    "eventlistener",
+    "react"
+  ],
+  "author": "Shkumbin Hasani",
+  "bugs": {
+    "url": "https://github.com/shkumbinhasani/pubsubjs/issues"
+  },
+  "homepage": "https://github.com/shkumbinhasani/pubsubjs#readme"
+}
