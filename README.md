@@ -1,4 +1,4 @@
-#  🕊️ PubSubJS - The universal public subscribe solution
+#  🕊️ PubSubJS - The universal publish subscribe solution
 
 ![A drawing of white pigeon flying](https://i.imgur.com/lIqyWco.png)
 
