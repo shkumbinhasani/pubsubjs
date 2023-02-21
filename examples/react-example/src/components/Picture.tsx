@@ -26,6 +26,13 @@ export default function Picture() {
         })
     }, [])
 
+    PubSub.usePreviousImage(() => {
+        setCurrentProduct((currentImage) => {
+            console.log(currentImage - 1)
+            return currentImage > 0 ? currentImage - 1 : 0
+        })
+    }, [])
+
     return products ? <div>
         <img src={products[currentProduct % products.length].thumbnail} alt={"hi"} />
         <h1>{products[currentProduct % products.length].title}</h1>

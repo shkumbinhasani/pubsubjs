@@ -1,0 +1,29 @@
+{
+  "name": "aws-serverless-example",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsup api.ts pubsub.ts",
+    "deploy": "serverless deploy",
+    "remove": "serverless remove"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/aws-lambda": "latest",
+    "@types/node": "^18.14.0",
+    "serverless": "latest",
+    "tsup": "^6.6.3",
+    "typescript": "^4.9.5"
+  },
+  "dependencies": {
+    "@pubsubjs/core": "0.0.1-build-02",
+    "aws-lambda": "1.0.7",
+    "aws-sdk": "^2.1318.0",
+    "lodash": "^4.17.21",
+    "zod": "^3.20.6"
+  }
+}

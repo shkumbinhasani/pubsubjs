@@ -9,7 +9,7 @@ This is a Javascript library written in Typescript that handles publish/subscrib
 
 You can install this library using npm:
 ```
-npm install 
+npm install @pubsubjs/core
 ```
 
 ## Usage
@@ -26,7 +26,7 @@ This library currently supports the following adapters:
 
 1. [ ] AWS SNS
 2. [ ] Kafka
-3. [ ] React
+3. [x] React
 
 Each adapter has its own set of options and methods, but they all provide the same interface for working with publish/subscribe event pattern.
 
