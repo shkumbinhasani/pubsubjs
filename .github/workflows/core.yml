@@ -12,10 +12,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+        working-directory: core
       - uses: pnpm/action-setup@v2
+        working-directory: core
         with:
           version: 7
       - uses: actions/setup-node@v3
+        working-directory: core
         with:
           node-version: 16
           cache: 'pnpm'
