@@ -8,16 +8,20 @@ on:
       - '.github/workflows/core.yml'
 
 jobs:
-    build:
-        runs-on: ubuntu-latest
-        steps:
-        - uses: actions/checkout@v3
-        - uses: pnpm/action-setup@v2
-          with:
-            version: 7
-        - uses: actions/setup-node@v3
-          with:
-            node-version: 16
-            cache: 'pnpm'
-        - run: cd core && pnpm install --frozen-lockfile
-        - run: cd core && pnpm run lint
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 7
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          cache: 'pnpm'
+      - name: Install dependencies
+        working-directory: core
+        run: pnpm install --frozen-lockfile
+      - name: Run lint
+        working-directory: core
+        run: pnpm run lint
