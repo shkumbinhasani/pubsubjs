@@ -1,7 +1,7 @@
 {
   "name": "@pubsubjs/core",
   "license": "MIT",
-  "version": "0.0.1-build-02",
+  "version": "0.0.1",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -13,12 +13,10 @@
     "zod": ">=3.0.0"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.26.0",
+    "tsup": "^6.6.3",
     "typescript": "^4.9.5",
-    "zod": "^3.20.6",
-    "tsup": "^6.6.3"
-  },
-  "dependencies": {
-
+    "zod": "^3.20.6"
   },
   "description": "The universal javascript way of publish subscribe pattern",
   "repository": {

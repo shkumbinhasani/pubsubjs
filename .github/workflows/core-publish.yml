@@ -1,0 +1,31 @@
+name: Publish
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'core/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+    publish:
+        runs-on: ubuntu-latest
+        steps:
+        - uses: actions/checkout@v3
+        - uses: pnpm/action-setup@v2
+          with:
+            version: 7
+        - uses: actions/setup-node@v3
+          with:
+            node-version: 16
+            cache: 'pnpm'
+        - run: pnpm install --frozen-lockfile
+        - name: Create Release Pull Request or Publish on NPM
+          id: changesets
+          uses: changesets/action@v2
+          with:
+            publish: true
+            token: ${{ secrets.GITHUB_TOKEN }}
