@@ -30,8 +30,8 @@ jobs:
         - name: Create Release Pull Request or Publish on NPM
           id: changesets
           uses: changesets/action@v1
-          working-directory: core
           with:
+            working-directory: core
             publish: cd core && pnpm publish --access public --tag latest --no-git-checks --no-git-tag-version --no-git-reset --no-git-required --no-push --no-commit-hooks --no-lockfile --no-shamefully-hoist --no-update-check --no-verify-access --no-verify-store
           env:
             NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
