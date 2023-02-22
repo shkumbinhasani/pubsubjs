@@ -1,8 +1,7 @@
-import {APIGatewayEvent, APIGatewayProxyCallback, Context} from "aws-lambda";
 import {generatePublishers} from "@pubsubjs/core";
+import {serverlessPublisherFunction} from "@pubsubjs/serverless-adapter";
 import AWS from "aws-sdk";
 import events from "./events";
-import {serverlessPublisherFunction} from "@pubsubjs/serverless-adapter";
 const sns = new AWS.SNS();
 
 
@@ -12,14 +11,11 @@ const publisher = generatePublishers(events, serverlessPublisherFunction({
     region: process.env.REGION ?? '',
 }));
 
-export async function httpApi(event: APIGatewayEvent, context: Context, callback: APIGatewayProxyCallback) {
+export const registerUser = () => {
+    // Logic to register user
+
     publisher.publishUserRegistered({
         fullName: 'John Doe',
-        email: 'johndoe@gmail.com',
-    });
-
-    callback(null, {
-        statusCode: 200,
-        body: JSON.stringify({}),
+        email: 'johndoe@gmail.com'
     });
 }

@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@pubsubjs/core": "0.0.1-build-02",
+    "@pubsubjs/serverless-adapter": "^0.0.0-dev.3",
     "aws-lambda": "1.0.7",
     "aws-sdk": "^2.1318.0",
     "lodash": "^4.17.21",

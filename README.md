@@ -10,23 +10,47 @@ This is a Javascript library written in Typescript that handles publish/subscrib
 You can install this library using npm:
 ```
 npm install @pubsubjs/core
+npm install @pubsubjs/serverless-adapter
 ```
 
-## Usage
-This library provides a simple interface for working with publish/subscribe event pattern. Here's an example of how you can use it with AWS SNS adapter:
-
+## Core Usage
+This library provides a simple interface for working with publish/subscribe event pattern.
 ```typescript
-import {z} from "zod"
+import {EventType, generatePublishers, generateSubscriber} from "@pubsubjs/core";
+import {z} from "zod";
 
-//TODO
+// define your events
+const testEvent = {
+    name: 'test',
+    schema: z.object({
+        message: z.string()
+    })
+} as const satisfies EventType;
+
+const events = [testEvent];
+
+// generate the publisher and subscriber
+const subscriberApp = generateSubscriber(events);
+const publisherApp = generatePublishers(events, (event, data) => {
+    console.log(event, data);
+});
+
+// subscribe to an event
+subscriberApp.onTest((data) => {
+    console.log('New user registered: '+data.message);
+    console.log(data);
+});
+
+// publish an event
+publisherApp.publishTest({message: 'Hello world!'});
 ```
 
 ## Adapters
 This library currently supports the following adapters:
 
-1. [ ] AWS SNS
+1. [x] AWS SNS [docs](./serverless-adapter/README.md)
 2. [ ] Kafka
-3. [x] React
+3. [x] React [docs](./react/README.md)
 
 Each adapter has its own set of options and methods, but they all provide the same interface for working with publish/subscribe event pattern.
 

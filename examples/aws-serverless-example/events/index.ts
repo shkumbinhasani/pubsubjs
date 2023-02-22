@@ -2,10 +2,11 @@ import {z} from "zod";
 import {EventType} from "@pubsubjs/core";
 
 const helloEvent = {
-    name: 'miesenPart',
+    name: 'userRegistered',
     prefix: 'auth-',
     schema: z.object({
-        message: z.string()
+        fullName: z.string(),
+        email: z.string()
     })
 } as const satisfies EventType
 

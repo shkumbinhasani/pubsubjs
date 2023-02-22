@@ -1,0 +1,50 @@
+{
+  "name": "@pubsubjs/serverless-adapter",
+  "license": "MIT",
+  "version": "0.0.0-dev.3",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "directories": {
+    "lib": "dist"
+  },
+  "scripts": {
+    "build": "tsup index.ts --format cjs,esm --dts",
+    "lint": "tsc"
+  },
+  "peerDependencies": {
+    "zod": ">=3.0.0",
+    "@pubsubjs/core": "~0.0.1-build-02",
+    "aws-lambda": ">=1.0.0",
+    "aws-sdk": ">=2.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^4.9.5",
+    "zod": "^3.20.6",
+    "tsup": "^6.6.3",
+    "@pubsubjs/core": "~0.0.1-build-02",
+    "aws-lambda": "^1.0.6",
+    "@types/aws-lambda": "latest",
+    "aws-sdk": "^2.1318.0"
+  },
+  "dependencies": {
+
+  },
+  "description": "The universal javascript way of publish subscribe pattern",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shkumbinhasani/pubsubjs.git"
+  },
+  "keywords": [
+    "pubsub",
+    "sns",
+    "event",
+    "eventlistener",
+    "react"
+  ],
+  "author": "Shkumbin Hasani",
+  "bugs": {
+    "url": "https://github.com/shkumbinhasani/pubsubjs/issues"
+  },
+  "homepage": "https://github.com/shkumbinhasani/pubsubjs#readme"
+}
