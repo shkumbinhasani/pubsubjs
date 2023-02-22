@@ -27,6 +27,8 @@ jobs:
         - name: Install dependencies
           run: pnpm install --frozen-lockfile
           working-directory: core
+        - name: Move ./core/.changeset to ./core
+          run: mv ./core/.changeset/* ./core
         - name: Create Release Pull Request or Publish on NPM
           id: changesets
           uses: changesets/action@v1
