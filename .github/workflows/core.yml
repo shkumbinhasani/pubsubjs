@@ -18,5 +18,5 @@ jobs:
           with:
             node-version: 16
             cache: 'pnpm'
-        - run: pnpm install --frozen-lockfile
-        - run: pnpm run lint --filter serverless-example
+        - run: cd core && pnpm install --frozen-lockfile
+        - run: cd core && pnpm run lint
