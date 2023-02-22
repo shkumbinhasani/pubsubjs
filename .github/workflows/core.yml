@@ -19,6 +19,7 @@ jobs:
         with:
           node-version: 16
           cache: 'pnpm'
+          cache-dependency-path: core
       - name: Install dependencies
         working-directory: core
         run: pnpm install --frozen-lockfile
