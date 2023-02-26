@@ -1,0 +1,42 @@
+{
+  "name": "@pubsubjs/kafka-adapter",
+  "license": "MIT",
+  "version": "0.0.0-dev.0",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsup index.ts --format cjs,esm --dts",
+    "lint": "tsc"
+  },
+  "peerDependencies": {
+    "@pubsubjs/core": "~0.0.1-build-02",
+    "kafkajs": ">=2.2.3",
+    "zod": ">=3.0.0"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.26.0",
+    "@pubsubjs/core": "0.0.1-build-02",
+    "kafkajs": "^2.2.3",
+    "tsup": "^6.6.3",
+    "typescript": "^4.9.5",
+    "zod": "^3.20.6"
+  },
+  "description": "The universal javascript way of publish subscribe pattern",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shkumbinhasani/pubsubjs.git"
+  },
+  "keywords": [
+    "pubsub",
+    "sns",
+    "event",
+    "eventlistener",
+    "react"
+  ],
+  "author": "Shkumbin Hasani",
+  "bugs": {
+    "url": "https://github.com/shkumbinhasani/pubsubjs/issues"
+  },
+  "homepage": "https://github.com/shkumbinhasani/pubsubjs#readme"
+}

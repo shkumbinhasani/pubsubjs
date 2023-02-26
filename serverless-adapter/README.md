@@ -10,7 +10,7 @@ This is a Javascript library written in Typescript that handles publish/subscrib
 You can install this library using npm:
 ```
 npm install @pubsubjs/core
-npm install @pubsubjs/core
+npm install @pubsubjs/serverless-adapter
 ```
 
 

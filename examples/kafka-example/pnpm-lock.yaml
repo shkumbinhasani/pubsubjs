@@ -1,0 +1,60 @@
+lockfileVersion: 5.4
+
+specifiers:
+  '@pubsubjs/core': 0.0.1-build-02
+  '@pubsubjs/kafka-adapter': 0.0.0-dev.0
+  '@types/node': ^18.14.1
+  kafkajs: ^2.2.3
+  typescript: ^4.9.5
+  zod: ^3.20.6
+
+dependencies:
+  '@pubsubjs/core': 0.0.1-build-02_zod@3.20.6
+  '@pubsubjs/kafka-adapter': 0.0.0-dev.0_helzudgrn33ejhcczeqgb42dqa
+  kafkajs: 2.2.3
+  zod: 3.20.6
+
+devDependencies:
+  '@types/node': 18.14.1
+  typescript: 4.9.5
+
+packages:
+
+  /@pubsubjs/core/0.0.1-build-02_zod@3.20.6:
+    resolution: {integrity: sha512-HkfrWVjy+RPZBqoVbrPfkFnMp/2IBy6h0eSuuwAtAsuAHiVodoJpHNylOgY83OM2kGjTFn79VRd7E96BM67+fw==}
+    peerDependencies:
+      zod: '>=3.0.0'
+    dependencies:
+      zod: 3.20.6
+    dev: false
+
+  /@pubsubjs/kafka-adapter/0.0.0-dev.0_helzudgrn33ejhcczeqgb42dqa:
+    resolution: {integrity: sha512-vXC+lrTu0IEgqTQ4ghFHdarhp8aZ/1zMU48za9IMf26Utln/yH4K2z5htMVZqPgOUCcBFAo6YWkIx9TTkNlTJA==}
+    peerDependencies:
+      '@pubsubjs/core': ~0.0.1-build-02
+      kafkajs: '>=2.2.3'
+      zod: '>=3.0.0'
+    dependencies:
+      '@pubsubjs/core': 0.0.1-build-02_zod@3.20.6
+      kafkajs: 2.2.3
+      zod: 3.20.6
+    dev: false
+
+  /@types/node/18.14.1:
+    resolution: {integrity: sha512-QH+37Qds3E0eDlReeboBxfHbX9omAcBCXEzswCu6jySP642jiM3cYSIkU/REqwhCUqXdonHFuBfJDiAJxMNhaQ==}
+    dev: true
+
+  /kafkajs/2.2.3:
+    resolution: {integrity: sha512-JmzIiLHE/TdQ7b4I2B/DNMtfhTh66fmEaEg7gGkyQXBC6f1A7I2jSjeUsVIJfC8d9YcEIURyBjtOEKBO5OHVhg==}
+    engines: {node: '>=14.0.0'}
+    dev: false
+
+  /typescript/4.9.5:
+    resolution: {integrity: sha512-1FXk9E2Hm+QzZQ7z+McJiHL4NW1F2EzMu9Nq9i3zAaGqibafqYwCVU6WyWAuyQRRzOlxou8xZSyXLEN8oKj24g==}
+    engines: {node: '>=4.2.0'}
+    hasBin: true
+    dev: true
+
+  /zod/3.20.6:
+    resolution: {integrity: sha512-oyu0m54SGCtzh6EClBVqDDlAYRz4jrVtKwQ7ZnsEmMI9HnzuZFj8QFwAY1M5uniIYACdGvv0PBWPF2kO0aNofA==}
+    dev: false
