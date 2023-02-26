@@ -48,7 +48,7 @@ publisherApp.publishTest({message: 'Hello world!'});
 This library currently supports the following adapters:
 
 1. [x] AWS SNS [docs](./serverless-adapter/README.md)
-2. [ ] Kafka [docs](./kafka-adapter/README.md)
+2. [x] Kafka [docs](./kafka-adapter/README.md)
 3. [x] React [docs](./react/README.md)
 
 Each adapter has its own set of options and methods, but they all provide the same interface for working with publish/subscribe event pattern.
