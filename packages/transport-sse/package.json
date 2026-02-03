@@ -43,6 +43,6 @@
     "provenance": true
   },
   "dependencies": {
-    "@pubsubjs/core": "^0.1.0"
+    "@pubsubjs/core": "workspace:*"
   }
 }
