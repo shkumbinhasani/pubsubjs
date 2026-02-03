@@ -1,4 +1,5 @@
 {
+  "private": true,
   "name": "@pubsub-examples/realtime-dashboard",
   "version": "1.0.1",
   "type": "module",
