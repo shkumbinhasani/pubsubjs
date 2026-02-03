@@ -1,15 +1,74 @@
-# pubsub
+# @pubsubjs
 
-To install dependencies:
+Type-safe, schema-validated pub/sub library with middleware support.
+
+## Packages
+
+| Package | Description |
+|---------|-------------|
+| [@pubsubjs/core](./packages/core) | Core pub/sub functionality with middleware support |
+| [@pubsubjs/transport-websocket](./packages/transport-websocket) | WebSocket transport (client & server) |
+| [@pubsubjs/transport-redis](./packages/transport-redis) | Redis transport for horizontal scaling |
+| [@pubsubjs/transport-sse](./packages/transport-sse) | Server-Sent Events transport |
+| [@pubsubjs/react](./packages/react) | React hooks and bindings |
+
+## Installation
 
 ```bash
-bun install
+bun add @pubsubjs/core @pubsubjs/transport-websocket zod
 ```
 
-To run:
+## Quick Start
 
-```bash
-bun run index.ts
+```typescript
+import { defineEvents, Publisher, Subscriber } from "@pubsubjs/core";
+import { WebSocketClientTransport } from "@pubsubjs/transport-websocket";
+import { z } from "zod";
+
+// Define type-safe events
+const events = defineEvents({
+  "chat.message": {
+    schema: z.object({
+      userId: z.string(),
+      message: z.string(),
+    }),
+  },
+});
+
+// Create transport
+const transport = new WebSocketClientTransport({ url: "ws://localhost:3000/ws" });
+
+// Publisher
+const publisher = new Publisher({ events, transport });
+await publisher.publish("chat.message", { userId: "1", message: "Hello!" });
+
+// Subscriber
+const subscriber = new Subscriber({ events, transport });
+subscriber.on("chat.message", (payload, ctx) => {
+  console.log(`${payload.userId}: ${payload.message}`);
+});
+await subscriber.subscribe();
 ```
 
-This project was created using `bun init` in bun v1.3.1. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
+## Features
+
+- **Type-safe events** - Full TypeScript support with inferred types
+- **Schema validation** - Zod, Valibot, or any Standard Schema compatible library
+- **Middleware** - Logging, timing, rate limiting, idempotency
+- **Multiple transports** - WebSocket, Redis, SSE
+- **React integration** - Hooks for easy React integration
+
+## Examples
+
+See the [examples](./examples) directory for complete examples:
+
+- [Basic Usage](./examples/basic-usage)
+- [Chat WebSocket](./examples/chat-websocket)
+- [Scalable WebSocket](./examples/scalable-websocket) - Horizontal scaling with Redis
+- [Microservices Redis](./examples/microservices-redis)
+- [SSE Notifications](./examples/sse-notifications)
+- [React Example](./examples/react-example)
+
+## License
+
+MIT
