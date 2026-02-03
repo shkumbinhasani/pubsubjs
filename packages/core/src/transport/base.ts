@@ -5,6 +5,7 @@ import type {
   TransportEventHandler,
   TransportMessageHandler,
   TransportPublishOptions,
+  TransportSubscribeOptions,
   ConnectionState,
 } from "./interface";
 import type { UnsubscribeFn } from "../types/handler";
@@ -47,12 +48,13 @@ export abstract class BaseTransport implements Transport {
 
   async subscribe(
     channel: string,
-    handler: TransportMessageHandler
+    handler: TransportMessageHandler,
+    options?: TransportSubscribeOptions
   ): Promise<UnsubscribeFn> {
     if (!this.capabilities.canSubscribe) {
       throw new TransportCapabilityError(this.id, "subscribe");
     }
-    return this.doSubscribe(channel, handler);
+    return this.doSubscribe(channel, handler, options);
   }
 
   async publish(
@@ -71,7 +73,8 @@ export abstract class BaseTransport implements Transport {
 
   protected abstract doSubscribe(
     channel: string,
-    handler: TransportMessageHandler
+    handler: TransportMessageHandler,
+    options?: TransportSubscribeOptions
   ): Promise<UnsubscribeFn>;
 
   protected abstract doPublish(

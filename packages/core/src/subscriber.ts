@@ -1,4 +1,5 @@
 import type { Transport, TransportMessage } from "./transport/interface";
+import type { FilterPolicy } from "./types/filter";
 import type {
   EventRegistry,
   EventNames,
@@ -25,6 +26,14 @@ export type SubscriberErrorHandler = (
   eventName: string,
   payload: unknown
 ) => void;
+
+/**
+ * Options for subscribing to an event
+ */
+export interface SubscribeOptions {
+  /** Filter policy for this subscription */
+  readonly filter?: FilterPolicy;
+}
 
 /**
  * Options for creating a Subscriber
@@ -71,7 +80,7 @@ export class Subscriber<
   private readonly middleware: readonly SubscribeMiddleware<TEvents, TContext>[];
   private readonly handlers = new Map<
     string,
-    EventHandler<unknown, TContext, TPublisher>
+    { handler: EventHandler<unknown, TContext, TPublisher>; filter?: FilterPolicy }
   >();
   private readonly subscriptions = new Map<string, UnsubscribeFn>();
   private isSubscribed = false;
@@ -99,12 +108,13 @@ export class Subscriber<
       EventPayload<TEvents, TEventName>,
       TContext,
       TPublisher
-    >
+    >,
+    options?: SubscribeOptions
   ): this {
-    this.handlers.set(
-      eventName,
-      handler as EventHandler<unknown, TContext, TPublisher>
-    );
+    this.handlers.set(eventName, {
+      handler: handler as EventHandler<unknown, TContext, TPublisher>,
+      filter: options?.filter,
+    });
     return this;
   }
 
@@ -122,10 +132,9 @@ export class Subscriber<
   onMany(handlers: HandlerMap<TEvents, TContext, TPublisher>): this {
     for (const [eventName, handler] of Object.entries(handlers)) {
       if (handler) {
-        this.handlers.set(
-          eventName,
-          handler as EventHandler<unknown, TContext, TPublisher>
-        );
+        this.handlers.set(eventName, {
+          handler: handler as EventHandler<unknown, TContext, TPublisher>,
+        });
       }
     }
     return this;
@@ -156,11 +165,13 @@ export class Subscriber<
       throw new UnknownEventError(eventName);
     }
 
+    const entry = this.handlers.get(eventName);
     const channel = eventDef.options?.channel ?? this.channelStrategy(eventName);
 
     const unsubscribe = await this.transport.subscribe(
       channel,
-      (message) => this.handleMessage(eventName, message)
+      (message) => this.handleMessage(eventName, message),
+      { filter: entry?.filter }
     );
 
     this.subscriptions.set(eventName, unsubscribe);
@@ -170,8 +181,8 @@ export class Subscriber<
     eventName: string,
     message: TransportMessage
   ): Promise<void> {
-    const handler = this.handlers.get(eventName);
-    if (!handler) {
+    const entry = this.handlers.get(eventName);
+    if (!entry) {
       return;
     }
 
@@ -198,7 +209,7 @@ export class Subscriber<
 
       // Execute handler through middleware chain
       const executeHandler = async () => {
-        await handler(payload, { ctx, publisher: this.publisher });
+        await entry.handler(payload, { ctx, publisher: this.publisher });
       };
 
       if (this.middleware.length === 0) {

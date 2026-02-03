@@ -4,10 +4,13 @@ import {
   type TransportCapabilities,
   type TransportMessageHandler,
   type TransportPublishOptions,
+  type TransportSubscribeOptions,
   type TransportMessage,
   type UnsubscribeFn,
+  type EventAttributes,
   generateMessageId,
   TransportCapabilityError,
+  matchesFilter,
 } from "@pubsubjs/core";
 
 /**
@@ -32,6 +35,7 @@ interface SSEMessage {
   readonly payload: unknown;
   readonly messageId?: string;
   readonly metadata?: Record<string, unknown>;
+  readonly attributes?: EventAttributes;
 }
 
 /**
@@ -54,7 +58,7 @@ export class SSEClientTransport extends BaseTransport {
   private eventSource: EventSource | null = null;
   private readonly channelHandlers = new Map<
     string,
-    Set<TransportMessageHandler>
+    Set<{ handler: TransportMessageHandler; options?: TransportSubscribeOptions }>
   >();
   private isManuallyDisconnected = false;
 
@@ -157,7 +161,8 @@ export class SSEClientTransport extends BaseTransport {
 
   protected async doSubscribe(
     channel: string,
-    handler: TransportMessageHandler
+    handler: TransportMessageHandler,
+    options?: TransportSubscribeOptions
   ): Promise<UnsubscribeFn> {
     let handlers = this.channelHandlers.get(channel);
     const isNewChannel = !handlers;
@@ -166,7 +171,8 @@ export class SSEClientTransport extends BaseTransport {
       handlers = new Set();
       this.channelHandlers.set(channel, handlers);
     }
-    handlers.add(handler);
+    const entry = { handler, options };
+    handlers.add(entry);
 
     // If already connected and this is a new channel, reconnect to update subscription
     if (isNewChannel && this.eventSource) {
@@ -176,7 +182,7 @@ export class SSEClientTransport extends BaseTransport {
     }
 
     return () => {
-      handlers!.delete(handler);
+      handlers!.delete(entry);
       if (handlers!.size === 0) {
         this.channelHandlers.delete(channel);
       }
@@ -203,11 +209,16 @@ export class SSEClientTransport extends BaseTransport {
           payload: message.payload,
           messageId: message.messageId ?? generateMessageId(),
           metadata: message.metadata,
+          attributes: message.attributes,
         };
 
-        for (const handler of handlers) {
+        for (const entry of handlers) {
           try {
-            handler(transportMessage);
+            // Apply filter if present
+            if (!matchesFilter(transportMessage.attributes, entry.options?.filter)) {
+              continue;
+            }
+            entry.handler(transportMessage);
           } catch (error) {
             console.error("Error in SSE message handler:", error);
           }
@@ -225,16 +236,25 @@ export class SSEClientTransport extends BaseTransport {
     }
 
     try {
-      const payload = JSON.parse(data);
+      const parsed = JSON.parse(data) as { payload?: unknown; attributes?: EventAttributes } | unknown;
+      const isStructured = typeof parsed === "object" && parsed !== null && "payload" in parsed;
+      const payload = isStructured ? (parsed as { payload: unknown }).payload : parsed;
+      const attributes = isStructured ? (parsed as { attributes?: EventAttributes }).attributes : undefined;
+
       const transportMessage: TransportMessage = {
         channel,
         payload,
         messageId: generateMessageId(),
+        attributes,
       };
 
-      for (const handler of handlers) {
+      for (const entry of handlers) {
         try {
-          handler(transportMessage);
+          // Apply filter if present
+          if (!matchesFilter(transportMessage.attributes, entry.options?.filter)) {
+            continue;
+          }
+          entry.handler(transportMessage);
         } catch (error) {
           console.error("Error in SSE message handler:", error);
         }
@@ -247,9 +267,13 @@ export class SSEClientTransport extends BaseTransport {
         messageId: generateMessageId(),
       };
 
-      for (const handler of handlers) {
+      for (const entry of handlers) {
         try {
-          handler(transportMessage);
+          // No attributes for plain text, so filter only passes if no filter set
+          if (!matchesFilter(undefined, entry.options?.filter)) {
+            continue;
+          }
+          entry.handler(transportMessage);
         } catch (error) {
           console.error("Error in SSE message handler:", error);
         }

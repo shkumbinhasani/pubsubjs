@@ -1,5 +1,6 @@
 import type { BaseContext } from "./context";
 import type { EventRegistry, EventNames, EventPayload } from "./schema";
+import type { EventAttributes } from "./filter";
 
 /**
  * Publisher interface that handlers can use to publish events
@@ -22,6 +23,8 @@ export interface PublishOptions {
   readonly channel?: string;
   /** Additional metadata to include */
   readonly metadata?: Record<string, unknown>;
+  /** Event attributes for filtering */
+  readonly attributes?: EventAttributes;
 }
 
 /**

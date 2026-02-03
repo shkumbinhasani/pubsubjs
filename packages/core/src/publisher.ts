@@ -88,6 +88,7 @@ export class Publisher<TEvents extends EventRegistry>
 
       await this.transport.publish(channel, validatedPayload, {
         targetIds: options?.targetIds,
+        attributes: options?.attributes,
         metadata: {
           eventName,
           ...options?.metadata,

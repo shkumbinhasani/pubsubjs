@@ -30,11 +30,19 @@ export type {
 } from "./types/handler";
 
 export type {
+  AttributeValue,
+  EventAttributes,
+  FilterCondition,
+  FilterPolicy,
+} from "./types/filter";
+
+export type {
   Transport,
   TransportCapabilities,
   TransportMessage,
   TransportMessageHandler,
   TransportPublishOptions,
+  TransportSubscribeOptions,
   TransportEvent,
   TransportEventHandler,
   ConnectionState,
@@ -67,6 +75,7 @@ export {
   Subscriber,
   type SubscriberOptions,
   type SubscriberErrorHandler,
+  type SubscribeOptions,
   type IdempotencyOptions,
   type RateLimitOptions,
   createSubscriberLoggingMiddleware,
@@ -74,6 +83,9 @@ export {
   createIdempotencyMiddleware,
   createRateLimitMiddleware,
 } from "./subscriber";
+
+// Filter
+export { matchesFilter, toSNSFilterPolicy } from "./filter/matcher";
 
 // PubSub
 export { PubSub, type PubSubOptions } from "./pubsub";
