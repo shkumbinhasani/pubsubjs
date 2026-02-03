@@ -1,6 +1,6 @@
 {
   "name": "@pubsubjs/transport-redis",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Redis transport for @pubsubjs/core - pub/sub via Redis for horizontal scaling",
   "type": "module",
   "main": "./dist/index.js",

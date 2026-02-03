@@ -1,6 +1,6 @@
 {
   "name": "@pubsub-examples/basic-usage",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "scripts": {
     "start": "bun run index.ts",

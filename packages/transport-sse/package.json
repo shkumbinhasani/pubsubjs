@@ -1,6 +1,6 @@
 {
   "name": "@pubsubjs/transport-sse",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Server-Sent Events transport for @pubsubjs/core - unidirectional server to client",
   "type": "module",
   "main": "./dist/index.js",

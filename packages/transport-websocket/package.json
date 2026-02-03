@@ -1,6 +1,6 @@
 {
   "name": "@pubsubjs/transport-websocket",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "WebSocket transport for @pubsubjs/core - client and server implementations",
   "type": "module",
   "main": "./dist/index.js",
