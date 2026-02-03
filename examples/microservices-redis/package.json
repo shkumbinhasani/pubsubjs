@@ -1,0 +1,30 @@
+{
+  "name": "@pubsub-examples/microservices-redis",
+  "version": "2.0.0",
+  "type": "module",
+  "scripts": {
+    "start:all": "docker-compose up --build",
+    "start:services": "concurrently \"bun run user-service.ts\" \"bun run order-service.ts\" \"bun run inventory-service.ts\" \"bun run notification-service.ts\" \"bun run payment-service.ts\" \"bun run shipping-service.ts\" \"bun run api-gateway.ts\"",
+    "start:user-service": "bun run user-service.ts",
+    "start:order-service": "bun run order-service.ts",
+    "start:inventory-service": "bun run inventory-service.ts",
+    "start:notification-service": "bun run notification-service.ts",
+    "start:payment-service": "bun run payment-service.ts",
+    "start:shipping-service": "bun run shipping-service.ts",
+    "start:api-gateway": "bun run api-gateway.ts",
+    "demo": "bun run demo.ts",
+    "test": "bun test",
+    "test:watch": "bun test --watch",
+    "health": "bun run health-check.ts"
+  },
+  "dependencies": {
+    "@pubsubjs/core": "workspace:*",
+    "@pubsubjs/transport-redis": "workspace:*",
+    "zod": "^4.3.6",
+    "ioredis": "^5.4.1"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "concurrently": "^8.2.2"
+  }
+}

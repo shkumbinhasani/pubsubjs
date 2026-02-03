@@ -1,0 +1,64 @@
+{
+  "name": "@pubsubjs/core",
+  "version": "0.1.0",
+  "description": "Type-safe, schema-validated pub/sub library with middleware support",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "bun run clean && bun run build"
+  },
+  "keywords": [
+    "pubsub",
+    "pub/sub",
+    "events",
+    "typescript",
+    "type-safe",
+    "middleware",
+    "zod",
+    "valibot",
+    "standard-schema"
+  ],
+  "author": "Shkumbin Hasani",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shkumbinhasani/pubsubjs.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/shkumbinhasani/pubsubjs#readme",
+  "bugs": {
+    "url": "https://github.com/shkumbinhasani/pubsubjs/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "peerDependencies": {
+    "zod": "^4.0.0",
+    "valibot": "^1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "zod": {
+      "optional": true
+    },
+    "valibot": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "@standard-schema/spec": "^1.1.0"
+  }
+}

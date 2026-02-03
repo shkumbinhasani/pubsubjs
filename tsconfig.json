@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@pubsubjs/core": ["packages/core/src"],
+      "@pubsubjs/core/*": ["packages/core/src/*"],
+      "@pubsubjs/transport-websocket": ["packages/transport-websocket/src"],
+      "@pubsubjs/transport-sse": ["packages/transport-sse/src"],
+      "@pubsubjs/transport-redis": ["packages/transport-redis/src"],
+      "@pubsubjs/react": ["packages/react/src"]
+    }
+  },
+  "include": ["packages/*/src/**/*"]
+}

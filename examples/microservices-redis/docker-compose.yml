@@ -1,0 +1,166 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  user-service:
+    build:
+      context: ../..
+      dockerfile: examples/microservices-redis/Dockerfile
+    command: bun run examples/microservices-redis/user-service.ts
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - SERVICE_NAME=user-service
+      - SERVICE_PORT=3001
+    ports:
+      - "3001:3001"
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  order-service:
+    build:
+      context: ../..
+      dockerfile: examples/microservices-redis/Dockerfile
+    command: bun run examples/microservices-redis/order-service.ts
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - SERVICE_NAME=order-service
+      - SERVICE_PORT=3002
+    ports:
+      - "3002:3002"
+    depends_on:
+      redis:
+        condition: service_healthy
+      user-service:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  inventory-service:
+    build:
+      context: ../..
+      dockerfile: examples/microservices-redis/Dockerfile
+    command: bun run examples/microservices-redis/inventory-service.ts
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - SERVICE_NAME=inventory-service
+      - SERVICE_PORT=3003
+    ports:
+      - "3003:3003"
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3003/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  payment-service:
+    build:
+      context: ../..
+      dockerfile: examples/microservices-redis/Dockerfile
+    command: bun run examples/microservices-redis/payment-service.ts
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - SERVICE_NAME=payment-service
+      - SERVICE_PORT=3004
+    ports:
+      - "3004:3004"
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3004/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  shipping-service:
+    build:
+      context: ../..
+      dockerfile: examples/microservices-redis/Dockerfile
+    command: bun run examples/microservices-redis/shipping-service.ts
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - SERVICE_NAME=shipping-service
+      - SERVICE_PORT=3005
+    ports:
+      - "3005:3005"
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3005/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  notification-service:
+    build:
+      context: ../..
+      dockerfile: examples/microservices-redis/Dockerfile
+    command: bun run examples/microservices-redis/notification-service.ts
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - SERVICE_NAME=notification-service
+      - SERVICE_PORT=3006
+    ports:
+      - "3006:3006"
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3006/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  api-gateway:
+    build:
+      context: ../..
+      dockerfile: examples/microservices-redis/Dockerfile
+    command: bun run examples/microservices-redis/api-gateway.ts
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - SERVICE_NAME=api-gateway
+      - SERVICE_PORT=8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      redis:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+      order-service:
+        condition: service_healthy
+      inventory-service:
+        condition: service_healthy
+      payment-service:
+        condition: service_healthy
+      shipping-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+
+volumes:
+  redis-data:

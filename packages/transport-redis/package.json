@@ -1,0 +1,48 @@
+{
+  "name": "@pubsubjs/transport-redis",
+  "version": "0.1.0",
+  "description": "Redis transport for @pubsubjs/core - pub/sub via Redis for horizontal scaling",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "bun run clean && bun run build"
+  },
+  "keywords": [
+    "pubsub",
+    "redis",
+    "transport",
+    "distributed",
+    "bun"
+  ],
+  "author": "Shkumbin Hasani",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shkumbinhasani/pubsubjs.git",
+    "directory": "packages/transport-redis"
+  },
+  "homepage": "https://github.com/shkumbinhasani/pubsubjs#readme",
+  "bugs": {
+    "url": "https://github.com/shkumbinhasani/pubsubjs/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@pubsubjs/core": "^0.1.0"
+  }
+}

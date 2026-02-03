@@ -1,0 +1,17 @@
+{
+  "name": "scalable-websocket-example",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "bun --hot src/server/index.ts",
+    "start": "bun src/server/index.ts"
+  },
+  "dependencies": {
+    "@pubsubjs/core": "workspace:*",
+    "@pubsubjs/transport-websocket": "workspace:*",
+    "@pubsubjs/transport-redis": "workspace:*",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "zod": "^3.24.0"
+  }
+}

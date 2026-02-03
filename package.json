@@ -1,0 +1,30 @@
+{
+  "name": "pubsubjs-monorepo",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "examples/*"
+  ],
+  "scripts": {
+    "build": "bun run build:core && bun run build:transports && bun run build:react",
+    "build:core": "cd packages/core && bun run build",
+    "build:transports": "cd packages/transport-websocket && bun run build && cd ../transport-redis && bun run build && cd ../transport-sse && bun run build",
+    "build:react": "cd packages/react && bun run build",
+    "clean": "rm -rf packages/*/dist",
+    "test": "bun test",
+    "changeset": "changeset",
+    "version": "changeset version",
+    "release": "bun run clean && bun run build && changeset publish",
+    "release:ci": "changeset publish --no-git-tag"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.29.8",
+    "@types/bun": "latest",
+    "@types/react": "^19.0.0",
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "zod": "^4.0.0"
+  }
+}

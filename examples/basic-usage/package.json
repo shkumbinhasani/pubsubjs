@@ -1,0 +1,17 @@
+{
+  "name": "@pubsub-examples/basic-usage",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "bun run index.ts",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@pubsubjs/core": "workspace:*",
+    "@pubsubjs/react": "workspace:*",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}

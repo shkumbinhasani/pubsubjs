@@ -1,0 +1,48 @@
+{
+  "name": "@pubsubjs/transport-sse",
+  "version": "0.1.0",
+  "description": "Server-Sent Events transport for @pubsubjs/core - unidirectional server to client",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "bun run clean && bun run build"
+  },
+  "keywords": [
+    "pubsub",
+    "sse",
+    "server-sent-events",
+    "transport",
+    "real-time"
+  ],
+  "author": "Shkumbin Hasani",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shkumbinhasani/pubsubjs.git",
+    "directory": "packages/transport-sse"
+  },
+  "homepage": "https://github.com/shkumbinhasani/pubsubjs#readme",
+  "bugs": {
+    "url": "https://github.com/shkumbinhasani/pubsubjs/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@pubsubjs/core": "^0.1.0"
+  }
+}
