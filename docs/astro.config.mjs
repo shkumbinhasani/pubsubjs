@@ -24,6 +24,7 @@ export default defineConfig({
 					label: 'Core Concepts',
 					items: [
 						{ label: 'Events & Schemas', slug: 'concepts/events' },
+						{ label: 'Attributes & Filtering', slug: 'concepts/attributes-filtering' },
 						{ label: 'Publisher', slug: 'concepts/publisher' },
 						{ label: 'Subscriber', slug: 'concepts/subscriber' },
 						{ label: 'Transports', slug: 'concepts/transports' },
