@@ -11,7 +11,7 @@ import {
   generateMessageId,
   matchesFilter,
 } from "@pubsubjs/core";
-import type { ServerWebSocket } from "bun";
+import type { ServerWebSocket, WebSocketHandler, Server } from "bun";
 
 /**
  * Data attached to each WebSocket connection
@@ -58,6 +58,30 @@ interface WireMessage {
 
 /**
  * WebSocket server transport using Bun.serve
+ *
+ * Can be used in two modes:
+ *
+ * **Standalone mode** - Creates its own server when port is provided:
+ * ```ts
+ * const transport = new WebSocketServerTransport({ port: 3000 });
+ * await transport.connect();
+ * ```
+ *
+ * **Composable mode** - Integrates with an external Bun.serve() when no port is provided:
+ * ```ts
+ * const transport = new WebSocketServerTransport();
+ * await transport.connect();
+ *
+ * Bun.serve({
+ *   fetch(req, server) {
+ *     if (req.headers.get("upgrade") === "websocket") {
+ *       return transport.handleUpgrade(req, server);
+ *     }
+ *     return new Response("Hello");
+ *   },
+ *   websocket: transport.websocketHandler,
+ * });
+ * ```
  */
 export class WebSocketServerTransport extends BaseTransport {
   readonly id: string;
@@ -81,10 +105,88 @@ export class WebSocketServerTransport extends BaseTransport {
     Set<{ handler: TransportMessageHandler; options?: TransportSubscribeOptions }>
   >();
 
+  /**
+   * WebSocket handler for use with external Bun.serve()
+   *
+   * Use this when integrating with an existing server instead of letting
+   * the transport create its own server.
+   *
+   * @example
+   * ```ts
+   * Bun.serve({
+   *   fetch: (req, server) => transport.handleUpgrade(req, server),
+   *   websocket: transport.websocketHandler,
+   * });
+   * ```
+   */
+  readonly websocketHandler: WebSocketHandler<WebSocketData> = {
+    maxPayloadLength: 16 * 1024 * 1024,
+    idleTimeout: 120,
+
+    open: (ws: ServerWebSocket<WebSocketData>) => {
+      this.connections.set(ws.data.connectionId, ws);
+      this.emit("connect", { connectionId: ws.data.connectionId });
+    },
+
+    message: (ws: ServerWebSocket<WebSocketData>, message) => {
+      this.handleClientMessage(ws, message);
+    },
+
+    close: (ws: ServerWebSocket<WebSocketData>) => {
+      this.handleClientDisconnect(ws);
+    },
+  };
+
   constructor(options: WebSocketServerOptions = {}) {
     super();
     this.id = generateTransportId("ws-server");
     this.options = options;
+
+    // Apply options to websocketHandler
+    if (options.maxPayloadLength !== undefined) {
+      (this.websocketHandler as { maxPayloadLength: number }).maxPayloadLength =
+        options.maxPayloadLength;
+    }
+    if (options.idleTimeout !== undefined) {
+      (this.websocketHandler as { idleTimeout: number }).idleTimeout =
+        options.idleTimeout;
+    }
+  }
+
+  /**
+   * Handle WebSocket upgrade request for use with external Bun.serve()
+   *
+   * @example
+   * ```ts
+   * Bun.serve({
+   *   fetch(req, server) {
+   *     if (req.headers.get("upgrade") === "websocket") {
+   *       return transport.handleUpgrade(req, server);
+   *     }
+   *     return new Response("Hello");
+   *   },
+   *   websocket: transport.websocketHandler,
+   * });
+   * ```
+   */
+  async handleUpgrade(req: Request, server: Server<WebSocketData>): Promise<Response | undefined> {
+    let data: WebSocketData = {
+      connectionId: generateMessageId(),
+      subscriptions: new Set(),
+    };
+
+    if (this.options.onUpgrade) {
+      data = {
+        ...data,
+        ...(await this.options.onUpgrade(req)),
+      };
+    }
+
+    const success = server.upgrade(req, { data });
+    if (success) {
+      return undefined;
+    }
+    return new Response("WebSocket upgrade failed", { status: 400 });
   }
 
   async connect(): Promise<void> {
@@ -92,54 +194,29 @@ export class WebSocketServerTransport extends BaseTransport {
       return;
     }
 
+    // Composable mode: no port means we're integrating with an external server
+    if (this.options.port === undefined) {
+      this.setState("connected");
+      return;
+    }
+
+    // Standalone mode: create our own server
     this.setState("connecting");
 
     try {
       this.server = Bun.serve<WebSocketData>({
-        port: this.options.port ?? 0,
+        port: this.options.port,
         hostname: this.options.hostname,
         fetch: async (req, server) => {
           // Handle WebSocket upgrade
           const url = new URL(req.url);
           if (url.pathname === "/ws" || req.headers.get("upgrade") === "websocket") {
-            let data: WebSocketData = {
-              connectionId: generateMessageId(),
-              subscriptions: new Set(),
-            };
-
-            if (this.options.onUpgrade) {
-              data = {
-                ...data,
-                ...(await this.options.onUpgrade(req)),
-              };
-            }
-
-            const success = server.upgrade(req, { data });
-            if (success) {
-              return undefined as unknown as Response;
-            }
-            return new Response("WebSocket upgrade failed", { status: 400 });
+            return this.handleUpgrade(req, server);
           }
 
           return new Response("Not found", { status: 404 });
         },
-        websocket: {
-          maxPayloadLength: this.options.maxPayloadLength ?? 16 * 1024 * 1024,
-          idleTimeout: this.options.idleTimeout ?? 120,
-
-          open: (ws: ServerWebSocket<WebSocketData>) => {
-            this.connections.set(ws.data.connectionId, ws);
-            this.emit("connect", { connectionId: ws.data.connectionId });
-          },
-
-          message: (ws: ServerWebSocket<WebSocketData>, message) => {
-            this.handleClientMessage(ws, message);
-          },
-
-          close: (ws: ServerWebSocket<WebSocketData>) => {
-            this.handleClientDisconnect(ws);
-          },
-        },
+        websocket: this.websocketHandler,
       });
 
       this.setState("connected");
@@ -150,14 +227,15 @@ export class WebSocketServerTransport extends BaseTransport {
   }
 
   async disconnect(): Promise<void> {
-    if (this.server) {
-      // Close all connections
-      for (const ws of this.connections.values()) {
-        ws.close();
-      }
-      this.connections.clear();
-      this.channelSubscriptions.clear();
+    // Close all connections
+    for (const ws of this.connections.values()) {
+      ws.close();
+    }
+    this.connections.clear();
+    this.channelSubscriptions.clear();
 
+    // Stop server if we created one (standalone mode)
+    if (this.server) {
       this.server.stop();
       this.server = null;
     }

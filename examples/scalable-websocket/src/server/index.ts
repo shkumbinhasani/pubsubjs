@@ -11,11 +11,11 @@
  */
 
 import { config } from "./lib/config";
-import { wsTransport, wsSubscriber, type WebSocketData } from "./transports/websocket";
+import { wsTransport, wsSubscriber } from "./transports/websocket";
 import { redisTransport, redisSubscriber } from "./transports/redis";
 import { setupClientEventHandlers, setupRedisEventHandlers, setupConnectionHandlers } from "./handlers";
 import { routes } from "./routes";
-import { generateMessageId } from "@pubsubjs/core";
+import type { WebSocketData } from "@pubsubjs/transport-websocket";
 
 async function start() {
   // Setup event handlers
@@ -60,14 +60,7 @@ async function start() {
 
       // Handle WebSocket upgrade
       if (url.pathname === "/ws") {
-        const data: WebSocketData = {
-          connectionId: generateMessageId(),
-          subscriptions: new Set(),
-        };
-
-        const upgraded = server.upgrade(req, { data });
-        if (upgraded) return undefined;
-        return new Response("WebSocket upgrade failed", { status: 400 });
+        return wsTransport.handleUpgrade(req, server);
       }
 
       return new Response("Not Found", { status: 404 });
