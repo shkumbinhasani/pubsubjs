@@ -1,5 +1,30 @@
 # @pubsubjs/transport-sse
 
+## 0.2.0
+
+### Minor Changes
+
+- e32a69b: Add attribute-based event filtering at the transport level
+
+  - Add `FilterPolicy` type with operators: `$in`, `$exists`, `$prefix`, `$ne`, `$gt`, `$gte`, `$lt`, `$lte`, `$between`
+  - Add `EventAttributes` type for attaching filterable attributes to events
+  - Add `matchesFilter()` function for evaluating filter policies
+  - Add `toSNSFilterPolicy()` for AWS SNS compatibility
+  - Update `PublishOptions` to accept `attributes`
+  - Update `Subscriber.on()` to accept filter option
+  - Implement client-side filtering in WebSocket, Redis, and SSE transports
+  - Support nested attributes via dot notation (e.g., `"user.role"`)
+
+  Filter semantics:
+
+  - Multiple conditions on same key = OR (at least one must match)
+  - Multiple keys = AND (all must match)
+
+### Patch Changes
+
+- Updated dependencies [e32a69b]
+  - @pubsubjs/core@0.2.0
+
 ## 0.1.2
 
 ### Patch Changes
