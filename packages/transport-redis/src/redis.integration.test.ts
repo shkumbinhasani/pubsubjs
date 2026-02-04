@@ -269,6 +269,185 @@ describe.skipIf(!isCI)("RedisTransport Integration (CI only)", () => {
       await unsubscribe();
     });
 
+    test("receives message when filter matches with $gt operator", async () => {
+      const channel = "filter-gt";
+      const received: TransportMessage[] = [];
+
+      const unsubscribe = await transport.subscribe(
+        channel,
+        (msg) => received.push(msg),
+        { filter: { score: { $gt: 50 } } }
+      );
+
+      await Bun.sleep(50);
+
+      // Should match (strictly greater than)
+      await transport.publish(channel, { id: 1 }, { attributes: { score: 51 } });
+      await transport.publish(channel, { id: 2 }, { attributes: { score: 100 } });
+
+      // Should not match (equal or less)
+      await transport.publish(channel, { id: 3 }, { attributes: { score: 50 } });
+      await transport.publish(channel, { id: 4 }, { attributes: { score: 25 } });
+
+      await Bun.sleep(100);
+
+      expect(received.length).toBe(2);
+      expect(received.map((r) => (r.payload as { id: number }).id)).toEqual([1, 2]);
+
+      await unsubscribe();
+    });
+
+    test("receives message when filter matches with $lt operator", async () => {
+      const channel = "filter-lt";
+      const received: TransportMessage[] = [];
+
+      const unsubscribe = await transport.subscribe(
+        channel,
+        (msg) => received.push(msg),
+        { filter: { score: { $lt: 50 } } }
+      );
+
+      await Bun.sleep(50);
+
+      // Should match (strictly less than)
+      await transport.publish(channel, { id: 1 }, { attributes: { score: 49 } });
+      await transport.publish(channel, { id: 2 }, { attributes: { score: 10 } });
+
+      // Should not match (equal or greater)
+      await transport.publish(channel, { id: 3 }, { attributes: { score: 50 } });
+      await transport.publish(channel, { id: 4 }, { attributes: { score: 100 } });
+
+      await Bun.sleep(100);
+
+      expect(received.length).toBe(2);
+      expect(received.map((r) => (r.payload as { id: number }).id)).toEqual([1, 2]);
+
+      await unsubscribe();
+    });
+
+    test("receives message when filter matches with $lte operator", async () => {
+      const channel = "filter-lte";
+      const received: TransportMessage[] = [];
+
+      const unsubscribe = await transport.subscribe(
+        channel,
+        (msg) => received.push(msg),
+        { filter: { score: { $lte: 50 } } }
+      );
+
+      await Bun.sleep(50);
+
+      // Should match (less than or equal)
+      await transport.publish(channel, { id: 1 }, { attributes: { score: 50 } });
+      await transport.publish(channel, { id: 2 }, { attributes: { score: 25 } });
+
+      // Should not match (greater than)
+      await transport.publish(channel, { id: 3 }, { attributes: { score: 51 } });
+
+      await Bun.sleep(100);
+
+      expect(received.length).toBe(2);
+      expect(received.map((r) => (r.payload as { id: number }).id)).toEqual([1, 2]);
+
+      await unsubscribe();
+    });
+
+    test("receives message when filter matches with $exists: false", async () => {
+      const channel = "filter-not-exists";
+      const received: TransportMessage[] = [];
+
+      const unsubscribe = await transport.subscribe(
+        channel,
+        (msg) => received.push(msg),
+        { filter: { deletedAt: { $exists: false } } }
+      );
+
+      await Bun.sleep(50);
+
+      // Should match (no deletedAt attribute)
+      await transport.publish(channel, { id: 1 }, {
+        attributes: { status: "active" },
+      });
+      await transport.publish(channel, { id: 2 }, {
+        attributes: { name: "test" },
+      });
+
+      // Should not match (has deletedAt)
+      await transport.publish(channel, { id: 3 }, {
+        attributes: { deletedAt: "2024-01-01" },
+      });
+
+      await Bun.sleep(100);
+
+      expect(received.length).toBe(2);
+      expect(received.map((r) => (r.payload as { id: number }).id)).toEqual([1, 2]);
+
+      await unsubscribe();
+    });
+
+    test("receives message when OR logic matches (array of conditions)", async () => {
+      const channel = "filter-or";
+      const received: TransportMessage[] = [];
+
+      // OR: status is "active" OR status is "pending"
+      const unsubscribe = await transport.subscribe(
+        channel,
+        (msg) => received.push(msg),
+        { filter: { status: ["active", "pending"] } }
+      );
+
+      await Bun.sleep(50);
+
+      // Should match
+      await transport.publish(channel, { id: 1 }, {
+        attributes: { status: "active" },
+      });
+      await transport.publish(channel, { id: 2 }, {
+        attributes: { status: "pending" },
+      });
+
+      // Should not match
+      await transport.publish(channel, { id: 3 }, {
+        attributes: { status: "cancelled" },
+      });
+
+      await Bun.sleep(100);
+
+      expect(received.length).toBe(2);
+      expect(received.map((r) => (r.payload as { id: number }).id)).toEqual([1, 2]);
+
+      await unsubscribe();
+    });
+
+    test("receives message when OR logic with operators matches", async () => {
+      const channel = "filter-or-operators";
+      const received: TransportMessage[] = [];
+
+      // OR: amount < 10 OR amount > 100
+      const unsubscribe = await transport.subscribe(
+        channel,
+        (msg) => received.push(msg),
+        { filter: { amount: [{ $lt: 10 }, { $gt: 100 }] } }
+      );
+
+      await Bun.sleep(50);
+
+      // Should match (< 10)
+      await transport.publish(channel, { id: 1 }, { attributes: { amount: 5 } });
+      // Should match (> 100)
+      await transport.publish(channel, { id: 2 }, { attributes: { amount: 150 } });
+
+      // Should not match (in between)
+      await transport.publish(channel, { id: 3 }, { attributes: { amount: 50 } });
+
+      await Bun.sleep(100);
+
+      expect(received.length).toBe(2);
+      expect(received.map((r) => (r.payload as { id: number }).id)).toEqual([1, 2]);
+
+      await unsubscribe();
+    });
+
     test("receives message when filter matches nested attributes", async () => {
       const channel = "filter-nested";
       const received: TransportMessage[] = [];
@@ -432,6 +611,200 @@ describe.skipIf(!isCI)("RedisTransport Integration (CI only)", () => {
 
       await unsubAll();
       await unsubFiltered();
+    });
+  });
+
+  describe("edge cases", () => {
+    test("filter does not match message with no attributes", async () => {
+      const channel = "edge-no-attrs";
+      const received: TransportMessage[] = [];
+
+      const unsubscribe = await transport.subscribe(
+        channel,
+        (msg) => received.push(msg),
+        { filter: { userId: "123" } }
+      );
+
+      await Bun.sleep(50);
+
+      // Message with no attributes should not match filter
+      await transport.publish(channel, { id: 1 }, {});
+      await transport.publish(channel, { id: 2 }); // No options at all
+
+      await Bun.sleep(100);
+
+      expect(received.length).toBe(0);
+
+      await unsubscribe();
+    });
+
+    test("filter on non-existent attribute does not match", async () => {
+      const channel = "edge-missing-attr";
+      const received: TransportMessage[] = [];
+
+      const unsubscribe = await transport.subscribe(
+        channel,
+        (msg) => received.push(msg),
+        { filter: { category: "electronics" } }
+      );
+
+      await Bun.sleep(50);
+
+      // Has attributes but not the one being filtered
+      await transport.publish(channel, { id: 1 }, {
+        attributes: { name: "test", price: 100 },
+      });
+
+      await Bun.sleep(100);
+
+      expect(received.length).toBe(0);
+
+      await unsubscribe();
+    });
+
+    test("numeric filter does not match string value", async () => {
+      const channel = "edge-type-mismatch-num";
+      const received: TransportMessage[] = [];
+
+      const unsubscribe = await transport.subscribe(
+        channel,
+        (msg) => received.push(msg),
+        { filter: { amount: { $gte: 100 } } }
+      );
+
+      await Bun.sleep(50);
+
+      // String "150" should not match numeric filter
+      await transport.publish(channel, { id: 1 }, {
+        attributes: { amount: "150" },
+      });
+
+      // Number 150 should match
+      await transport.publish(channel, { id: 2 }, {
+        attributes: { amount: 150 },
+      });
+
+      await Bun.sleep(100);
+
+      expect(received.length).toBe(1);
+      expect(received[0].payload).toEqual({ id: 2 });
+
+      await unsubscribe();
+    });
+
+    test("prefix filter does not match number value", async () => {
+      const channel = "edge-type-mismatch-prefix";
+      const received: TransportMessage[] = [];
+
+      const unsubscribe = await transport.subscribe(
+        channel,
+        (msg) => received.push(msg),
+        { filter: { code: { $prefix: "ABC" } } }
+      );
+
+      await Bun.sleep(50);
+
+      // Number should not match prefix filter
+      await transport.publish(channel, { id: 1 }, {
+        attributes: { code: 12345 },
+      });
+
+      // String starting with ABC should match
+      await transport.publish(channel, { id: 2 }, {
+        attributes: { code: "ABC123" },
+      });
+
+      await Bun.sleep(100);
+
+      expect(received.length).toBe(1);
+      expect(received[0].payload).toEqual({ id: 2 });
+
+      await unsubscribe();
+    });
+
+    test("boolean attribute matches exactly", async () => {
+      const channel = "edge-boolean";
+      const received: TransportMessage[] = [];
+
+      const unsubscribe = await transport.subscribe(
+        channel,
+        (msg) => received.push(msg),
+        { filter: { active: true } }
+      );
+
+      await Bun.sleep(50);
+
+      // Should match
+      await transport.publish(channel, { id: 1 }, {
+        attributes: { active: true },
+      });
+
+      // Should not match (false)
+      await transport.publish(channel, { id: 2 }, {
+        attributes: { active: false },
+      });
+
+      // Should not match (truthy string, but not boolean true)
+      await transport.publish(channel, { id: 3 }, {
+        attributes: { active: "true" },
+      });
+
+      await Bun.sleep(100);
+
+      expect(received.length).toBe(1);
+      expect(received[0].payload).toEqual({ id: 1 });
+
+      await unsubscribe();
+    });
+
+    test("deeply nested attribute beyond supported depth returns no match", async () => {
+      const channel = "edge-deep-nested";
+      const received: TransportMessage[] = [];
+
+      // Trying to filter on a path that goes deeper than EventAttributes supports
+      const unsubscribe = await transport.subscribe(
+        channel,
+        (msg) => received.push(msg),
+        { filter: { "a.b.c": "value" } }
+      );
+
+      await Bun.sleep(50);
+
+      // This structure can't be represented in EventAttributes type properly
+      // The filter should not match since we can't traverse that deep
+      await transport.publish(channel, { id: 1 }, {
+        attributes: { a: { b: "nested" } },
+      });
+
+      await Bun.sleep(100);
+
+      expect(received.length).toBe(0);
+
+      await unsubscribe();
+    });
+
+    test("empty filter object matches all messages", async () => {
+      const channel = "edge-empty-filter";
+      const received: TransportMessage[] = [];
+
+      const unsubscribe = await transport.subscribe(
+        channel,
+        (msg) => received.push(msg),
+        { filter: {} }
+      );
+
+      await Bun.sleep(50);
+
+      await transport.publish(channel, { id: 1 }, {
+        attributes: { any: "value" },
+      });
+      await transport.publish(channel, { id: 2 }, {});
+
+      await Bun.sleep(100);
+
+      expect(received.length).toBe(2);
+
+      await unsubscribe();
     });
   });
 });
