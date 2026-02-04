@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://i.imgur.com/F5nNu5k.jpeg" alt="PubSubJS" width="600" />
+</p>
+
 # @pubsubjs
 
 Type-safe, schema-validated pub/sub library with middleware support.
