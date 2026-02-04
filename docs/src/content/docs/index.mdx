@@ -1,0 +1,82 @@
+---
+title: PubSubJS
+description: Type-safe, schema-validated pub/sub for TypeScript
+template: splash
+hero:
+  tagline: Build real-time applications with confidence using type-safe, schema-validated publish/subscribe patterns.
+  image:
+    file: ../../assets/houston.webp
+  actions:
+    - text: Get Started
+      link: /getting-started/introduction/
+      icon: right-arrow
+    - text: View on GitHub
+      link: https://github.com/pubsubjs/pubsubjs
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Why PubSubJS?
+
+<CardGrid stagger>
+	<Card title="Type-Safe" icon="seti:typescript">
+		Full TypeScript support with inferred types for events, payloads, and handlers. Catch errors at compile time.
+	</Card>
+	<Card title="Schema Validation" icon="approve-check">
+		Validate payloads at runtime using Zod, Valibot, or any Standard Schema compatible library.
+	</Card>
+	<Card title="Transport Agnostic" icon="random">
+		Use WebSocket, Redis, SSE, or create your own transport. Switch transports without changing your code.
+	</Card>
+	<Card title="Middleware Support" icon="setting">
+		Add logging, rate limiting, idempotency, and more with composable middleware for both publishing and subscribing.
+	</Card>
+</CardGrid>
+
+## Quick Example
+
+```typescript
+import { z } from "zod";
+import { defineEvent, Publisher, Subscriber } from "@pubsubjs/core";
+import { WebSocketServerTransport } from "@pubsubjs/transport-websocket";
+
+// Define type-safe events with schemas
+const events = defineEvent([
+  {
+    name: "user.created",
+    schema: z.object({
+      userId: z.string(),
+      email: z.string().email(),
+    }),
+  },
+]);
+
+// Create transport
+const transport = new WebSocketServerTransport({ port: 8080 });
+
+// Publish events
+const publisher = new Publisher({ events, transport });
+await publisher.publish("user.created", {
+  userId: "123",
+  email: "user@example.com",
+});
+
+// Subscribe to events
+const subscriber = new Subscriber({ events, transport });
+subscriber.on("user.created", (payload) => {
+  console.log(`New user: ${payload.email}`);
+});
+await subscriber.subscribe();
+```
+
+## Packages
+
+| Package | Description |
+|---------|-------------|
+| `@pubsubjs/core` | Core pub/sub functionality, types, and middleware |
+| `@pubsubjs/transport-websocket` | WebSocket transport for browser and server |
+| `@pubsubjs/transport-redis` | Redis transport for distributed systems |
+| `@pubsubjs/transport-sse` | Server-Sent Events transport |
+| `@pubsubjs/react` | React hooks and components |
