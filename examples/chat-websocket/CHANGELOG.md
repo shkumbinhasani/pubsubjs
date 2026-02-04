@@ -1,5 +1,14 @@
 # @pubsub-examples/chat-websocket
 
+## 1.0.3
+
+### Patch Changes
+
+- Updated dependencies [e32a69b]
+- Updated dependencies [5b6a4d6]
+  - @pubsubjs/core@0.2.0
+  - @pubsubjs/transport-websocket@0.2.0
+
 ## 1.0.2
 
 ### Patch Changes

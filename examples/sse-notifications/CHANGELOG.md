@@ -1,5 +1,13 @@
 # @pubsub-examples/sse-notifications
 
+## 1.0.3
+
+### Patch Changes
+
+- Updated dependencies [e32a69b]
+  - @pubsubjs/core@0.2.0
+  - @pubsubjs/transport-sse@0.2.0
+
 ## 1.0.2
 
 ### Patch Changes

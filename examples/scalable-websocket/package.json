@@ -1,7 +1,7 @@
 {
   "private": true,
   "name": "scalable-websocket-example",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "type": "module",
   "scripts": {
     "dev": "bun --hot src/server/index.ts",
