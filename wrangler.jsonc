@@ -1,0 +1,7 @@
+{
+  "name": "pubsubjs-docs",
+  "compatibility_date": "2026-02-04",
+  "assets": {
+    "directory": "./docs/dist"
+  }
+}
