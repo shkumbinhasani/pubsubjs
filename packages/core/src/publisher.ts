@@ -3,8 +3,10 @@ import type {
   EventRegistry,
   EventNames,
   EventPayload,
+  EventAttributesType,
 } from "./types/schema";
 import type { PublisherInterface, PublishOptions } from "./types/handler";
+import type { EventAttributes } from "./types/filter";
 import { validatePayload } from "./types/schema";
 import { ConnectionManager, type ConnectionManagerOptions } from "./connection/manager";
 import { UnknownEventError } from "./errors";
@@ -59,12 +61,12 @@ export class Publisher<TEvents extends EventRegistry>
   }
 
   /**
-   * Publish an event with type-safe payload
+   * Publish an event with type-safe payload and attributes
    */
   async publish<TEventName extends EventNames<TEvents>>(
     eventName: TEventName,
     payload: EventPayload<TEvents, TEventName>,
-    options?: PublishOptions
+    options?: PublishOptions<EventAttributesType<TEvents, TEventName>>
   ): Promise<void> {
     const eventDef = this.events[eventName];
     if (!eventDef) {
@@ -88,6 +90,7 @@ export class Publisher<TEvents extends EventRegistry>
 
       await this.transport.publish(channel, validatedPayload, {
         targetIds: options?.targetIds,
+        attributes: options?.attributes as EventAttributes | undefined,
         metadata: {
           eventName,
           ...options?.metadata,
@@ -102,7 +105,7 @@ export class Publisher<TEvents extends EventRegistry>
         0,
         eventName,
         validatedPayload,
-        options,
+        options as PublishOptions | undefined,
         executePublish
       );
     }

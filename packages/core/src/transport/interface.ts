@@ -1,4 +1,5 @@
 import type { UnsubscribeFn } from "../types/handler";
+import type { EventAttributes, FilterPolicy } from "../types/filter";
 
 /**
  * Connection state of a transport
@@ -24,6 +25,8 @@ export interface TransportCapabilities {
   readonly supportsTargeting: boolean;
   /** Supports channel/topic-based routing */
   readonly supportsChannels: boolean;
+  /** Supports server-side attribute filtering */
+  readonly supportsFiltering?: boolean;
 }
 
 /**
@@ -40,6 +43,8 @@ export interface TransportMessage {
   readonly connectionId?: string;
   /** Additional transport-specific metadata */
   readonly metadata?: Record<string, unknown>;
+  /** Event attributes for filtering */
+  readonly attributes?: EventAttributes;
 }
 
 /**
@@ -55,6 +60,16 @@ export interface TransportPublishOptions {
   readonly targetIds?: readonly string[];
   /** Additional metadata */
   readonly metadata?: Record<string, unknown>;
+  /** Event attributes for filtering */
+  readonly attributes?: EventAttributes;
+}
+
+/**
+ * Options for subscribing via transport
+ */
+export interface TransportSubscribeOptions {
+  /** Filter policy - transport decides how to implement */
+  readonly filter?: FilterPolicy;
 }
 
 /**
@@ -101,11 +116,13 @@ export interface Transport {
    * Subscribe to messages on a channel
    * @param channel - The channel to subscribe to
    * @param handler - Handler called when messages are received
+   * @param options - Subscribe options including filter policy
    * @returns Unsubscribe function
    */
   subscribe(
     channel: string,
-    handler: TransportMessageHandler
+    handler: TransportMessageHandler,
+    options?: TransportSubscribeOptions
   ): Promise<UnsubscribeFn>;
 
   /**

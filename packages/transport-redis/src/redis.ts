@@ -4,9 +4,12 @@ import {
   type TransportCapabilities,
   type TransportMessageHandler,
   type TransportPublishOptions,
+  type TransportSubscribeOptions,
   type TransportMessage,
   type UnsubscribeFn,
+  type EventAttributes,
   generateMessageId,
+  matchesFilter,
 } from "@pubsubjs/core";
 
 /**
@@ -26,6 +29,7 @@ interface RedisMessage {
   readonly payload: unknown;
   readonly messageId: string;
   readonly metadata?: Record<string, unknown>;
+  readonly attributes?: EventAttributes;
 }
 
 // Bun.redis returns a RedisClient instance
@@ -52,7 +56,7 @@ export class RedisTransport extends BaseTransport {
   private subClient: RedisSubscriber | null = null;
   private readonly channelHandlers = new Map<
     string,
-    Set<TransportMessageHandler>
+    Set<{ handler: TransportMessageHandler; options?: TransportSubscribeOptions }>
   >();
   private readonly subscribedChannels = new Set<string>();
 
@@ -110,7 +114,8 @@ export class RedisTransport extends BaseTransport {
 
   protected async doSubscribe(
     channel: string,
-    handler: TransportMessageHandler
+    handler: TransportMessageHandler,
+    options?: TransportSubscribeOptions
   ): Promise<UnsubscribeFn> {
     const fullChannel = this.getFullChannel(channel);
 
@@ -127,10 +132,11 @@ export class RedisTransport extends BaseTransport {
         this.subscribedChannels.add(fullChannel);
       }
     }
-    handlers.add(handler);
+    const entry = { handler, options };
+    handlers.add(entry);
 
     return async () => {
-      handlers!.delete(handler);
+      handlers!.delete(entry);
       if (handlers!.size === 0) {
         this.channelHandlers.delete(channel);
 
@@ -157,6 +163,7 @@ export class RedisTransport extends BaseTransport {
       payload,
       messageId: generateMessageId(),
       metadata: options?.metadata,
+      attributes: options?.attributes,
     };
 
     await this.pubClient.publish(fullChannel, JSON.stringify(message));
@@ -175,11 +182,16 @@ export class RedisTransport extends BaseTransport {
         payload: message.payload,
         messageId: message.messageId,
         metadata: message.metadata,
+        attributes: message.attributes,
       };
 
-      for (const handler of handlers) {
+      for (const entry of handlers) {
         try {
-          handler(transportMessage);
+          // Apply filter if present
+          if (!matchesFilter(transportMessage.attributes, entry.options?.filter)) {
+            continue;
+          }
+          entry.handler(transportMessage);
         } catch (error) {
           console.error("Error in Redis message handler:", error);
         }

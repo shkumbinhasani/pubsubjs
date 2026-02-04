@@ -4,9 +4,12 @@ import {
   type TransportCapabilities,
   type TransportMessageHandler,
   type TransportPublishOptions,
+  type TransportSubscribeOptions,
   type TransportMessage,
   type UnsubscribeFn,
+  type EventAttributes,
   generateMessageId,
+  matchesFilter,
 } from "@pubsubjs/core";
 import type { ServerWebSocket } from "bun";
 
@@ -50,6 +53,7 @@ interface WireMessage {
   readonly messageId?: string;
   readonly targetIds?: readonly string[];
   readonly metadata?: Record<string, unknown>;
+  readonly attributes?: EventAttributes;
 }
 
 /**
@@ -74,7 +78,7 @@ export class WebSocketServerTransport extends BaseTransport {
   private readonly channelSubscriptions = new Map<string, Set<string>>(); // channel -> connectionIds
   private readonly channelHandlers = new Map<
     string,
-    Set<TransportMessageHandler>
+    Set<{ handler: TransportMessageHandler; options?: TransportSubscribeOptions }>
   >();
 
   constructor(options: WebSocketServerOptions = {}) {
@@ -163,17 +167,19 @@ export class WebSocketServerTransport extends BaseTransport {
 
   protected async doSubscribe(
     channel: string,
-    handler: TransportMessageHandler
+    handler: TransportMessageHandler,
+    options?: TransportSubscribeOptions
   ): Promise<UnsubscribeFn> {
     let handlers = this.channelHandlers.get(channel);
     if (!handlers) {
       handlers = new Set();
       this.channelHandlers.set(channel, handlers);
     }
-    handlers.add(handler);
+    const entry = { handler, options };
+    handlers.add(entry);
 
     return () => {
-      handlers!.delete(handler);
+      handlers!.delete(entry);
       if (handlers!.size === 0) {
         this.channelHandlers.delete(channel);
       }
@@ -191,6 +197,7 @@ export class WebSocketServerTransport extends BaseTransport {
       payload,
       messageId: generateMessageId(),
       metadata: options?.metadata,
+      attributes: options?.attributes,
     };
     const data = JSON.stringify(message);
 
@@ -288,14 +295,19 @@ export class WebSocketServerTransport extends BaseTransport {
         ...message.metadata,
         ...ws.data,
       },
+      attributes: message.attributes,
     };
 
-    // Call server-side handlers
+    // Call server-side handlers (with client-side filtering)
     const handlers = this.channelHandlers.get(message.channel);
     if (handlers) {
-      for (const handler of handlers) {
+      for (const entry of handlers) {
         try {
-          handler(transportMessage);
+          // Apply filter if present
+          if (!matchesFilter(transportMessage.attributes, entry.options?.filter)) {
+            continue;
+          }
+          entry.handler(transportMessage);
         } catch (error) {
           console.error("Error in message handler:", error);
         }
@@ -322,6 +334,7 @@ export class WebSocketServerTransport extends BaseTransport {
       payload: message.payload,
       messageId: message.messageId,
       metadata: message.metadata,
+      attributes: message.attributes,
     };
     const data = JSON.stringify(wireMessage);
 

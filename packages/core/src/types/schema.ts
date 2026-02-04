@@ -12,9 +12,11 @@ export type StandardSchemaIssue = StandardSchemaV1.Issue;
 export interface EventDefinition<
   TName extends string = string,
   TSchema extends StandardSchema = StandardSchema,
+  TAttributesSchema extends StandardSchema | undefined = StandardSchema | undefined,
 > {
   readonly name: TName;
   readonly schema: TSchema;
+  readonly attributesSchema?: TAttributesSchema;
   readonly options?: EventOptions;
 }
 
@@ -33,9 +35,11 @@ export interface EventOptions {
 export interface EventDefinitionInput<
   TName extends string = string,
   TSchema extends StandardSchema = StandardSchema,
+  TAttributesSchema extends StandardSchema | undefined = StandardSchema | undefined,
 > {
   readonly name: TName;
   readonly schema: TSchema;
+  readonly attributesSchema?: TAttributesSchema;
   readonly description?: string;
   readonly channel?: string;
   readonly requiresAck?: boolean;
@@ -48,17 +52,28 @@ export interface EventDefinitionInput<
  * const events = defineEvent([
  *   { name: "user.created", schema: z.object({ userId: z.string() }), description: "User created" },
  *   { name: "user.updated", schema: z.object({ userId: z.string() }) },
+ *   {
+ *     name: "order.created",
+ *     schema: orderSchema,
+ *     attributesSchema: z.object({ userId: z.string(), amount: z.number() }),
+ *   },
  * ]);
  */
+type InferAttributesSchema<T> = T extends { attributesSchema: infer A }
+  ? A extends StandardSchema
+    ? A
+    : undefined
+  : undefined;
+
 export function defineEvent<
-  const TInputs extends readonly EventDefinitionInput<string, StandardSchema>[],
+  const TInputs extends readonly EventDefinitionInput<string, StandardSchema, StandardSchema | undefined>[],
 >(
   inputs: TInputs
-): { [K in TInputs[number] as K["name"]]: EventDefinition<K["name"], K["schema"]> } {
-  const result = {} as { [K in TInputs[number] as K["name"]]: EventDefinition<K["name"], K["schema"]> };
+): { [K in TInputs[number] as K["name"]]: EventDefinition<K["name"], K["schema"], InferAttributesSchema<K>> } {
+  const result = {} as { [K in TInputs[number] as K["name"]]: EventDefinition<K["name"], K["schema"], InferAttributesSchema<K>> };
 
   for (const input of inputs) {
-    const { name, schema, description, channel, requiresAck } = input;
+    const { name, schema, attributesSchema, description, channel, requiresAck } = input;
     const options: EventOptions | undefined = description || channel || requiresAck !== undefined
       ? { description, channel, requiresAck }
       : undefined;
@@ -66,6 +81,7 @@ export function defineEvent<
     (result as Record<string, EventDefinition>)[name] = {
       name,
       schema,
+      attributesSchema,
       options,
     };
   }
@@ -77,9 +93,9 @@ export function defineEvent<
  * An event registry is a record of event definitions keyed by event name
  */
 export type EventRegistry<
-  TEvents extends Record<string, EventDefinition> = Record<
+  TEvents extends Record<string, EventDefinition<string, StandardSchema, StandardSchema | undefined>> = Record<
     string,
-    EventDefinition
+    EventDefinition<string, StandardSchema, StandardSchema | undefined>
   >,
 > = TEvents;
 
@@ -98,6 +114,30 @@ export type EventPayload<
 > = TRegistry[TEventName] extends EventDefinition<string, infer TSchema>
   ? InferOutput<TSchema>
   : never;
+
+/**
+ * Extract the attributes type for a specific event
+ */
+export type EventAttributesType<
+  TRegistry extends EventRegistry,
+  TEventName extends EventNames<TRegistry>,
+> = TRegistry[TEventName] extends EventDefinition<string, StandardSchema, infer TAttributesSchema>
+  ? TAttributesSchema extends StandardSchema
+    ? InferOutput<TAttributesSchema>
+    : undefined
+  : undefined;
+
+/**
+ * Check if an event has an attributes schema
+ */
+export type HasAttributesSchema<
+  TRegistry extends EventRegistry,
+  TEventName extends EventNames<TRegistry>,
+> = TRegistry[TEventName] extends EventDefinition<string, StandardSchema, infer TAttributesSchema>
+  ? TAttributesSchema extends StandardSchema
+    ? true
+    : false
+  : false;
 
 /**
  * Validate a payload against a schema
