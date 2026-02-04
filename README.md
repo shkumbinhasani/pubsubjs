@@ -62,6 +62,10 @@ await subscriber.subscribe();
 - **Multiple transports** - WebSocket, Redis, SSE
 - **React integration** - Hooks for easy React integration
 
+## Documentation
+
+Visit the docs at https://pubsubjs.shkumbinhsn.com/
+
 ## Examples
 
 See the [examples](./examples) directory for complete examples:
