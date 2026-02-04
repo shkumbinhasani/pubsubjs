@@ -1,9 +1,10 @@
 import type { Transport, TransportMessage } from "./transport/interface";
-import type { FilterPolicy } from "./types/filter";
+import type { FilterPolicy, TypedFilterPolicy } from "./types/filter";
 import type {
   EventRegistry,
   EventNames,
   EventPayload,
+  EventAttributesType,
 } from "./types/schema";
 import type { BaseContext, ContextFactory, TransportMetadata } from "./types/context";
 import type {
@@ -29,10 +30,13 @@ export type SubscriberErrorHandler = (
 
 /**
  * Options for subscribing to an event
+ * @template TAttributes - Type of attributes (inferred from event's attributesSchema)
  */
-export interface SubscribeOptions {
-  /** Filter policy for this subscription */
-  readonly filter?: FilterPolicy;
+export interface SubscribeOptions<TAttributes = unknown> {
+  /** Filter policy for this subscription (type-safe when event has attributesSchema) */
+  readonly filter?: TAttributes extends Record<string, unknown>
+    ? TypedFilterPolicy<TAttributes>
+    : FilterPolicy;
 }
 
 /**
@@ -109,11 +113,11 @@ export class Subscriber<
       TContext,
       TPublisher
     >,
-    options?: SubscribeOptions
+    options?: SubscribeOptions<EventAttributesType<TEvents, TEventName>>
   ): this {
     this.handlers.set(eventName, {
       handler: handler as EventHandler<unknown, TContext, TPublisher>,
-      filter: options?.filter,
+      filter: options?.filter as FilterPolicy | undefined,
     });
     return this;
   }

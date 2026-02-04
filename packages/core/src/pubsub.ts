@@ -3,6 +3,7 @@ import type {
   EventRegistry,
   EventNames,
   EventPayload,
+  EventAttributesType,
 } from "./types/schema";
 import type { BaseContext, ContextFactory } from "./types/context";
 import type {
@@ -138,7 +139,7 @@ export class PubSub<
   async publish<TEventName extends EventNames<TPublishEvents>>(
     eventName: TEventName,
     payload: EventPayload<TPublishEvents, TEventName>,
-    options?: PublishOptions
+    options?: PublishOptions<EventAttributesType<TPublishEvents, TEventName>>
   ): Promise<void> {
     return this.publisher.publish(eventName, payload, options);
   }

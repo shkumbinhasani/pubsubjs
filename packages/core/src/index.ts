@@ -9,6 +9,8 @@ export type {
   EventRegistry,
   EventNames,
   EventPayload,
+  EventAttributesType,
+  HasAttributesSchema,
 } from "./types/schema";
 
 export type {
@@ -34,6 +36,11 @@ export type {
   EventAttributes,
   FilterCondition,
   FilterPolicy,
+  TypedFilterPolicy,
+  StringFilterCondition,
+  NumberFilterCondition,
+  BooleanFilterCondition,
+  FilterConditionFor,
 } from "./types/filter";
 
 export type {

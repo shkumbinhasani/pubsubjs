@@ -1,5 +1,5 @@
 import type { BaseContext } from "./context";
-import type { EventRegistry, EventNames, EventPayload } from "./schema";
+import type { EventRegistry, EventNames, EventPayload, EventAttributesType } from "./schema";
 import type { EventAttributes } from "./filter";
 
 /**
@@ -9,22 +9,23 @@ export interface PublisherInterface<TEvents extends EventRegistry> {
   publish<TEventName extends EventNames<TEvents>>(
     eventName: TEventName,
     payload: EventPayload<TEvents, TEventName>,
-    options?: PublishOptions
+    options?: PublishOptions<EventAttributesType<TEvents, TEventName>>
   ): Promise<void>;
 }
 
 /**
  * Options for publishing events
+ * @template TAttributes - Type of attributes (inferred from event's attributesSchema)
  */
-export interface PublishOptions {
+export interface PublishOptions<TAttributes = EventAttributes> {
   /** Target specific connection IDs (if transport supports) */
   readonly targetIds?: readonly string[];
   /** Custom channel override */
   readonly channel?: string;
   /** Additional metadata to include */
   readonly metadata?: Record<string, unknown>;
-  /** Event attributes for filtering */
-  readonly attributes?: EventAttributes;
+  /** Event attributes for filtering (type-safe when event has attributesSchema) */
+  readonly attributes?: TAttributes extends undefined ? EventAttributes : TAttributes;
 }
 
 /**
