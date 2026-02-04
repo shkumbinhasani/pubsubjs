@@ -13,7 +13,14 @@ bun add @pubsubjs/transport-websocket
 
 ## Server Transport
 
-### Basic Setup
+The server transport supports two modes:
+
+- **Standalone mode** - Creates its own HTTP server (simple setup)
+- **Composable mode** - Integrates with an existing `Bun.serve()` (flexible)
+
+### Standalone Mode
+
+Creates a dedicated WebSocket server:
 
 ```typescript
 import { WebSocketServerTransport } from "@pubsubjs/transport-websocket";
@@ -31,9 +38,59 @@ subscriber.on("message.sent", (payload) => {
   console.log(`New message: ${payload.content}`);
 });
 
+await transport.connect();
 await subscriber.subscribe();
 console.log("WebSocket server running on ws://localhost:8080");
 ```
+
+### Composable Mode
+
+Integrate WebSocket with an existing server that has HTTP routes, middleware, etc:
+
+```typescript
+import { WebSocketServerTransport } from "@pubsubjs/transport-websocket";
+import { Publisher, Subscriber } from "@pubsubjs/core";
+import { events } from "./events";
+
+// Create transport without port for composable mode
+const transport = new WebSocketServerTransport();
+
+const publisher = new Publisher({ events, transport });
+const subscriber = new Subscriber({ events, transport });
+
+await transport.connect();
+await subscriber.subscribe();
+
+// Integrate with your existing Bun.serve()
+Bun.serve({
+  port: 8080,
+
+  // Your HTTP routes
+  routes: {
+    "/api/health": () => Response.json({ status: "ok" }),
+  },
+
+  // Use transport's WebSocket handler
+  websocket: transport.websocketHandler,
+
+  fetch(req, server) {
+    const url = new URL(req.url);
+
+    // Handle WebSocket upgrades
+    if (url.pathname === "/ws") {
+      return transport.handleUpgrade(req, server);
+    }
+
+    return new Response("Not Found", { status: 404 });
+  },
+});
+```
+
+This mode is useful when you need:
+- Custom HTTP routes alongside WebSocket
+- Authentication middleware before WebSocket upgrade
+- Multiple transports sharing the same server
+- Integration with existing application infrastructure
 
 ### Server Options
 
@@ -195,33 +252,69 @@ const transport = new WebSocketClientTransport({
 
 ### Multiple Servers
 
-For horizontal scaling, use Redis as a message broker:
+For horizontal scaling, use Redis as a message broker between server instances. The composable mode is ideal for this pattern:
 
 ```typescript
 import { WebSocketServerTransport } from "@pubsubjs/transport-websocket";
 import { RedisTransport } from "@pubsubjs/transport-redis";
+import { Publisher, Subscriber } from "@pubsubjs/core";
 
-// Each server has its own WebSocket transport
-const wsTransport = new WebSocketServerTransport({ port: 8080 });
+// WebSocket transport in composable mode
+const wsTransport = new WebSocketServerTransport();
 
-// All servers share Redis for message routing
+// Redis transport for cross-server communication
 const redisTransport = new RedisTransport({ url: "redis://localhost:6379" });
 
-// Subscribe to Redis, publish to WebSocket clients
-const subscriber = new Subscriber({
-  events,
-  transport: redisTransport,
+// Client -> Server (WebSocket)
+const wsSubscriber = new Subscriber({ events, transport: wsTransport });
+
+// Server -> Clients (WebSocket)
+const wsPublisher = new Publisher({ events, transport: wsTransport });
+
+// Server -> Server (Redis)
+const redisPublisher = new Publisher({ events, transport: redisTransport });
+
+// Server <- Server (Redis)
+const redisSubscriber = new Subscriber({ events, transport: redisTransport });
+
+// Connect transports
+await wsTransport.connect();
+await redisTransport.connect();
+
+// When client sends a message, broadcast via Redis to all servers
+wsSubscriber.on("chat.message", async (payload, ctx) => {
+  await redisPublisher.publish("chat.message", payload);
 });
 
-const publisher = new Publisher({
-  events,
-  transport: wsTransport,
+// When Redis receives a message, send to local WebSocket clients
+redisSubscriber.on("chat.message", async (payload) => {
+  await wsPublisher.publish("chat.message", payload);
 });
 
-subscriber.on("broadcast", async (payload) => {
-  await publisher.publish("broadcast", payload);
+await wsSubscriber.subscribe();
+await redisSubscriber.subscribe();
+
+// Start server with HTTP routes and WebSocket
+Bun.serve({
+  port: process.env.PORT || 8080,
+  routes: {
+    "/api/health": () => Response.json({ status: "ok" }),
+  },
+  websocket: wsTransport.websocketHandler,
+  fetch(req, server) {
+    if (new URL(req.url).pathname === "/ws") {
+      return wsTransport.handleUpgrade(req, server);
+    }
+    return new Response("Not Found", { status: 404 });
+  },
 });
 ```
+
+This architecture allows:
+- Multiple server instances behind a load balancer
+- Messages from any client reach all connected clients
+- Each server handles its own WebSocket connections
+- Redis coordinates message delivery across servers
 
 ## Error Handling
 
