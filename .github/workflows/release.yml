@@ -60,6 +60,9 @@ jobs:
       - name: Run tests
         run: bun test
 
+      - name: Install dependencies with pnpm (for workspace protocol resolution)
+        run: pnpm install
+
       - name: Create Release Pull Request or Publish
         id: changesets
         uses: changesets/action@v1
