@@ -1,5 +1,14 @@
 # @pubsub-examples/realtime-dashboard
 
+## 1.0.5
+
+### Patch Changes
+
+- Updated dependencies [7c2d65d]
+  - @pubsubjs/core@0.3.0
+  - @pubsubjs/transport-websocket@0.3.0
+  - @pubsubjs/react@0.3.0
+
 ## 1.0.4
 
 ### Patch Changes

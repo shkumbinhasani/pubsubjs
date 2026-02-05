@@ -1,5 +1,12 @@
 # @pubsubjs/transport-redis
 
+## 0.3.0
+
+### Patch Changes
+
+- Updated dependencies [7c2d65d]
+  - @pubsubjs/core@0.3.0
+
 ## 0.2.1
 
 ### Patch Changes
