@@ -83,9 +83,21 @@ export type TransportEvent =
   | "message";
 
 /**
- * Transport event handler
+ * Event data types for each transport event
  */
-export type TransportEventHandler = (data?: unknown) => void;
+export interface TransportEventMap {
+  connect: { connectionId?: string; data?: Record<string, unknown> };
+  disconnect: { connectionId?: string };
+  error: { error?: Error };
+  reconnecting: { attempt?: number };
+  message: TransportMessage;
+}
+
+/**
+ * Transport event handler (legacy untyped version)
+ * @deprecated Use the typed overloads of on() and off() instead
+ */
+export type TransportEventHandler<T = unknown> = (data: T) => void;
 
 /**
  * Core transport interface that all transport implementations must follow
@@ -140,12 +152,18 @@ export interface Transport {
   /**
    * Register an event listener
    */
-  on(event: TransportEvent, handler: TransportEventHandler): void;
+  on<E extends TransportEvent>(
+    event: E,
+    handler: TransportEventHandler<TransportEventMap[E]>
+  ): void;
 
   /**
    * Remove an event listener
    */
-  off(event: TransportEvent, handler: TransportEventHandler): void;
+  off<E extends TransportEvent>(
+    event: E,
+    handler: TransportEventHandler<TransportEventMap[E]>
+  ): void;
 }
 
 /**

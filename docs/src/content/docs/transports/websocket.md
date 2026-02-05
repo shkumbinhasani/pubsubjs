@@ -319,12 +319,12 @@ This architecture allows:
 ## Error Handling
 
 ```typescript
-transport.on("error", (error) => {
+transport.on("error", ({ error }) => {
   console.error("WebSocket error:", error);
 });
 
-transport.on("disconnect", () => {
-  console.log("Connection lost, attempting to reconnect...");
+transport.on("disconnect", ({ connectionId }) => {
+  console.log(`Connection ${connectionId} lost, attempting to reconnect...`);
 });
 ```
 

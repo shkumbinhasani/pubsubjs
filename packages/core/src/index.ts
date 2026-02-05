@@ -52,6 +52,7 @@ export type {
   TransportSubscribeOptions,
   TransportEvent,
   TransportEventHandler,
+  TransportEventMap,
   ConnectionState,
 } from "./transport/interface";
 

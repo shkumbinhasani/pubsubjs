@@ -248,18 +248,20 @@ const errorLoggingMiddleware: PublishMiddleware<typeof events> = async (
 Handle transport-level errors:
 
 ```typescript
-transport.on("error", (error) => {
+transport.on("error", ({ error }) => {
   console.error("Transport error:", error);
 
   // Track in metrics
-  metrics.counter("transport_errors_total", 1, {
-    transport: transport.id,
-    error: error.name,
-  });
+  if (error) {
+    metrics.counter("transport_errors_total", 1, {
+      transport: transport.id,
+      error: error.name,
+    });
+  }
 });
 
-transport.on("disconnected", () => {
-  console.warn("Transport disconnected");
+transport.on("disconnect", ({ connectionId }) => {
+  console.warn(`Transport disconnected: ${connectionId}`);
   // UI feedback, reconnection logic, etc.
 });
 ```

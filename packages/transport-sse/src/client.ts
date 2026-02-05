@@ -122,11 +122,11 @@ export class SSEClientTransport extends BaseTransport {
         this.eventSource.onerror = () => {
           if (this._state === "connecting") {
             const error = new Error("SSE connection failed");
-            this.emit("error", error);
+            this.emit("error", { error });
             reject(error);
           } else if (!this.isManuallyDisconnected) {
             // EventSource auto-reconnects, but we emit an event
-            this.emit("reconnecting");
+            this.emit("reconnecting", {});
           }
         };
 
