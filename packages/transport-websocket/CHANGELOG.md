@@ -1,5 +1,12 @@
 # @pubsubjs/transport-websocket
 
+## 0.4.0
+
+### Patch Changes
+
+- Updated dependencies [61f520c]
+  - @pubsubjs/core@0.4.0
+
 ## 0.3.0
 
 ### Patch Changes
