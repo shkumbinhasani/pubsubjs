@@ -152,23 +152,40 @@ new Subscriber(options: SubscriberOptions<TEvents, TContext, TPublisher>)
 
 #### on
 
+Register a handler for an event. Returns an unsubscribe function that removes this specific handler.
+
+Multiple handlers can be registered for the same event — each receives messages independently. If one handler throws, others still execute.
+
+Handlers registered after `subscribe()` auto-subscribe to the transport (late-binding).
+
 ```typescript
 on<TEventName extends EventNames<TEvents>>(
   eventName: TEventName,
-  handler: EventHandler<EventPayload<TEvents, TEventName>, TContext, TPublisher>
-): this
+  handler: EventHandler<EventPayload<TEvents, TEventName>, TContext, TPublisher>,
+  options?: SubscribeOptions
+): UnsubscribeFn
 ```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `eventName` | `EventNames<TEvents>` | Event to listen for |
+| `handler` | `EventHandler` | Handler function |
+| `options` | `SubscribeOptions` | Optional per-handler filter policy |
 
 #### off
 
+Remove all handlers for an event and tear down the transport subscription.
+
 ```typescript
-off<TEventName extends EventNames<TEvents>>(eventName: TEventName): this
+off<TEventName extends EventNames<TEvents>>(eventName: TEventName): void
 ```
 
 #### onMany
 
+Register multiple handlers at once. Returns an unsubscribe function that removes all registered handlers.
+
 ```typescript
-onMany(handlers: HandlerMap<TEvents, TContext, TPublisher>): this
+onMany(handlers: HandlerMap<TEvents, TContext, TPublisher>): UnsubscribeFn
 ```
 
 #### subscribe

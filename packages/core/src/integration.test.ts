@@ -162,6 +162,57 @@ describe("Integration: Publisher/Subscriber Pattern", () => {
   });
 });
 
+describe("Integration: Multiple Handlers with Per-Handler Unsubscribe", () => {
+  test("multiple handlers on same event with per-handler unsubscribe", async () => {
+    const transport = new MemoryTransport();
+    const received1: string[] = [];
+    const received2: string[] = [];
+
+    const subscriber = new Subscriber({
+      events: UserEvents,
+      transport,
+    });
+
+    const publisher = new Publisher({
+      events: UserEvents,
+      transport,
+    });
+
+    const unsub1 = subscriber.on("user.created", (payload) => {
+      received1.push(payload!.userId);
+    });
+    subscriber.on("user.created", (payload) => {
+      received2.push(payload!.userId);
+    });
+
+    await subscriber.subscribe();
+
+    await publisher.publish("user.created", {
+      userId: "user-1",
+      email: "a@b.com",
+      name: "A",
+    });
+
+    expect(received1).toEqual(["user-1"]);
+    expect(received2).toEqual(["user-1"]);
+
+    // Unsubscribe only handler 1
+    unsub1();
+
+    await publisher.publish("user.created", {
+      userId: "user-2",
+      email: "b@c.com",
+      name: "B",
+    });
+
+    expect(received1).toEqual(["user-1"]); // not called again
+    expect(received2).toEqual(["user-1", "user-2"]); // still receives
+
+    await subscriber.unsubscribe();
+    await publisher.disconnect();
+  });
+});
+
 describe("Integration: Bidirectional PubSub", () => {
   test("PubSub allows publish and subscribe on same instance", async () => {
     const transport = new MemoryTransport();

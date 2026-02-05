@@ -102,7 +102,8 @@ filter: { "user.id": "user-123" }
 ## Notes
 
 - If a filter is provided and no attributes exist on a message, it will not match.
-- Filtering happens inside transports that support it (currently evaluated before handlers).
+- Filters are per-handler. Each handler registered with `on()` can have its own independent filter policy, evaluated before the handler runs.
+- Multiple handlers on the same event can have different filters — only matching handlers are invoked.
 
 ## Next Steps
 

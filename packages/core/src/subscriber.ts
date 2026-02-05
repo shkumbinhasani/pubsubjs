@@ -18,6 +18,7 @@ import { validatePayload } from "./types/schema";
 import { defaultContextFactory, generateMessageId } from "./types/context";
 import { ConnectionManager, type ConnectionManagerOptions } from "./connection/manager";
 import { UnknownEventError } from "./errors";
+import { matchesFilter } from "./filter/matcher";
 
 /**
  * Error handler for subscriber errors
@@ -84,7 +85,7 @@ export class Subscriber<
   private readonly middleware: readonly SubscribeMiddleware<TEvents, TContext>[];
   private readonly handlers = new Map<
     string,
-    { handler: EventHandler<unknown, TContext, TPublisher>; filter?: FilterPolicy }
+    Set<{ handler: EventHandler<unknown, TContext, TPublisher>; filter?: FilterPolicy }>
   >();
   private readonly subscriptions = new Map<string, UnsubscribeFn>();
   private isSubscribed = false;
@@ -105,6 +106,7 @@ export class Subscriber<
 
   /**
    * Register a handler for an event
+   * Returns an unsubscribe function that removes this specific handler
    */
   on<TEventName extends EventNames<TEvents>>(
     eventName: TEventName,
@@ -114,34 +116,74 @@ export class Subscriber<
       TPublisher
     >,
     options?: SubscribeOptions<EventAttributesType<TEvents, TEventName>>
-  ): this {
-    this.handlers.set(eventName, {
+  ): UnsubscribeFn {
+    const entry = {
       handler: handler as EventHandler<unknown, TContext, TPublisher>,
       filter: options?.filter as FilterPolicy | undefined,
-    });
-    return this;
+    };
+
+    let set = this.handlers.get(eventName);
+    if (!set) {
+      set = new Set();
+      this.handlers.set(eventName, set);
+    }
+    set.add(entry);
+
+    // Late-bind: if already subscribed, fire-and-forget transport subscription
+    if (this.isSubscribed && !this.subscriptions.has(eventName)) {
+      this.subscribeToEvent(eventName).catch((err) => {
+        if (this.onError) {
+          this.onError(
+            err instanceof Error ? err : new Error(String(err)),
+            eventName,
+            undefined
+          );
+        } else {
+          console.error(`[PubSub] Error late-subscribing to ${eventName}:`, err);
+        }
+      });
+    }
+
+    return () => {
+      const currentSet = this.handlers.get(eventName);
+      if (currentSet) {
+        currentSet.delete(entry);
+        if (currentSet.size === 0) {
+          this.handlers.delete(eventName);
+          this.unsubscribeFromEvent(eventName);
+        }
+      }
+    };
   }
 
   /**
-   * Remove a handler for an event
+   * Remove all handlers for an event
    */
-  off<TEventName extends EventNames<TEvents>>(eventName: TEventName): this {
+  off<TEventName extends EventNames<TEvents>>(eventName: TEventName): void {
     this.handlers.delete(eventName);
-    return this;
+    this.unsubscribeFromEvent(eventName);
   }
 
   /**
    * Register multiple handlers at once
+   * Returns an unsubscribe function that removes all registered handlers
    */
-  onMany(handlers: HandlerMap<TEvents, TContext, TPublisher>): this {
+  onMany(handlers: HandlerMap<TEvents, TContext, TPublisher>): UnsubscribeFn {
+    const unsubFns: UnsubscribeFn[] = [];
     for (const [eventName, handler] of Object.entries(handlers)) {
       if (handler) {
-        this.handlers.set(eventName, {
-          handler: handler as EventHandler<unknown, TContext, TPublisher>,
-        });
+        const unsub = this.on(
+          eventName as EventNames<TEvents>,
+          handler as EventHandler<unknown, TContext, TPublisher>,
+        );
+        unsubFns.push(unsub);
       }
     }
-    return this;
+    return () => {
+      for (const unsub of unsubFns) {
+        unsub();
+      }
+    };
   }
 
   /**
@@ -169,24 +211,30 @@ export class Subscriber<
       throw new UnknownEventError(eventName);
     }
 
-    const entry = this.handlers.get(eventName);
     const channel = eventDef.options?.channel ?? this.channelStrategy(eventName);
 
     const unsubscribe = await this.transport.subscribe(
       channel,
       (message) => this.handleMessage(eventName, message),
-      { filter: entry?.filter }
     );
 
     this.subscriptions.set(eventName, unsubscribe);
+  }
+
+  private unsubscribeFromEvent(eventName: string): void {
+    const unsub = this.subscriptions.get(eventName);
+    if (unsub) {
+      unsub();
+      this.subscriptions.delete(eventName);
+    }
   }
 
   private async handleMessage(
     eventName: string,
     message: TransportMessage
   ): Promise<void> {
-    const entry = this.handlers.get(eventName);
-    if (!entry) {
+    const entries = this.handlers.get(eventName);
+    if (!entries || entries.size === 0) {
       return;
     }
 
@@ -195,37 +243,12 @@ export class Subscriber<
       return;
     }
 
+    // Validate payload ONCE
+    let payload: unknown;
     try {
-      // Validate payload
-      let payload = message.payload;
+      payload = message.payload;
       if (!this.skipValidation) {
         payload = await validatePayload(eventDef.schema, message.payload);
-      }
-
-      // Create context
-      const metadata: TransportMetadata = {
-        messageId: message.messageId ?? generateMessageId(),
-        channel: message.channel,
-        connectionId: message.connectionId,
-        ...message.metadata,
-      };
-      const ctx = await this.contextFactory(metadata);
-
-      // Execute handler through middleware chain
-      const executeHandler = async () => {
-        await entry.handler(payload, { ctx, publisher: this.publisher });
-      };
-
-      if (this.middleware.length === 0) {
-        await executeHandler();
-      } else {
-        await this.executeMiddleware(
-          0,
-          eventName as EventNames<TEvents>,
-          payload,
-          ctx,
-          executeHandler
-        );
       }
     } catch (error) {
       if (this.onError) {
@@ -236,6 +259,52 @@ export class Subscriber<
         );
       } else {
         console.error(`[PubSub] Error handling ${eventName}:`, error);
+      }
+      return;
+    }
+
+    // Create context ONCE
+    const metadata: TransportMetadata = {
+      messageId: message.messageId ?? generateMessageId(),
+      channel: message.channel,
+      connectionId: message.connectionId,
+      ...message.metadata,
+    };
+    const ctx = await this.contextFactory(metadata);
+
+    // Fan out to all handlers, per-handler try/catch
+    for (const entry of entries) {
+      // Per-handler filter check
+      if (!matchesFilter(message.attributes, entry.filter)) {
+        continue;
+      }
+
+      try {
+        const executeHandler = async () => {
+          await entry.handler(payload, { ctx, publisher: this.publisher });
+        };
+
+        if (this.middleware.length === 0) {
+          await executeHandler();
+        } else {
+          await this.executeMiddleware(
+            0,
+            eventName as EventNames<TEvents>,
+            payload,
+            ctx,
+            executeHandler
+          );
+        }
+      } catch (error) {
+        if (this.onError) {
+          this.onError(
+            error instanceof Error ? error : new Error(String(error)),
+            eventName,
+            message.payload
+          );
+        } else {
+          console.error(`[PubSub] Error handling ${eventName}:`, error);
+        }
       }
     }
   }

@@ -49,10 +49,10 @@ function createMockSchema<T>(validator: (value: unknown) => T): StandardSchema<T
 // Mock transport with message simulation
 function createMockTransport(): Transport & {
   _state: ConnectionState;
-  _handlers: Map<string, TransportMessageHandler>;
-  simulateMessage: (channel: string, payload: unknown) => void;
+  _handlers: Map<string, Set<TransportMessageHandler>>;
+  simulateMessage: (channel: string, payload: unknown, attributes?: Record<string, unknown>) => void;
 } {
-  const handlers = new Map<string, TransportMessageHandler>();
+  const handlers = new Map<string, Set<TransportMessageHandler>>();
 
   const transport = {
     id: "mock-transport",
@@ -79,23 +79,37 @@ function createMockTransport(): Transport & {
       channel: string,
       handler: TransportMessageHandler
     ) {
-      handlers.set(channel, handler);
+      let set = handlers.get(channel);
+      if (!set) {
+        set = new Set();
+        handlers.set(channel, set);
+      }
+      set.add(handler);
       return () => {
-        handlers.delete(channel);
+        const s = handlers.get(channel);
+        if (s) {
+          s.delete(handler);
+          if (s.size === 0) {
+            handlers.delete(channel);
+          }
+        }
       };
     }),
     publish: mock(async (_channel: string, _payload: unknown, _options?: TransportPublishOptions) => {}),
     on: mock(() => {}),
     off: mock(() => {}),
-    simulateMessage(channel: string, payload: unknown) {
-      const handler = handlers.get(channel);
-      if (handler) {
+    simulateMessage(channel: string, payload: unknown, attributes?: Record<string, unknown>) {
+      const set = handlers.get(channel);
+      if (set) {
         const message: TransportMessage = {
           channel,
           payload,
           messageId: generateMessageId(),
+          attributes,
         };
-        handler(message);
+        for (const handler of set) {
+          handler(message);
+        }
       }
     },
   };
@@ -301,7 +315,7 @@ describe("Subscriber", () => {
     expect(calls).toContain("user.created");
   });
 
-  test("off removes handler", async () => {
+  test("off removes all handlers and transport subscription", async () => {
     const calls: number[] = [];
 
     subscriber.on("user.created", () => { calls.push(1); });
@@ -317,14 +331,8 @@ describe("Subscriber", () => {
 
     subscriber.off("user.created");
 
-    transport.simulateMessage("user.created", {
-      userId: "456",
-      email: "test2@example.com",
-    });
-
-    await waitForAsync();
-    // Handler was removed, but transport subscription remains
-    // The message is received but no handler processes it
+    // Transport subscription should be removed
+    expect(transport._handlers.has("user.created")).toBe(false);
   });
 
   test("unsubscribe cleans up", async () => {
@@ -349,6 +357,138 @@ describe("Subscriber", () => {
     await customSubscriber.subscribe();
 
     expect(transport._handlers.has("custom:user.created")).toBe(true);
+  });
+
+  test("on() returns unsubscribe function", async () => {
+    const calls: number[] = [];
+
+    const unsub = subscriber.on("user.created", () => { calls.push(1); });
+    await subscriber.subscribe();
+
+    transport.simulateMessage("user.created", {
+      userId: "123",
+      email: "test@example.com",
+    });
+    await waitForAsync();
+    expect(calls.length).toBe(1);
+
+    unsub();
+
+    transport.simulateMessage("user.created", {
+      userId: "456",
+      email: "test2@example.com",
+    });
+    await waitForAsync();
+    expect(calls.length).toBe(1);
+  });
+
+  test("multiple handlers per event all receive messages", async () => {
+    const calls1: string[] = [];
+    const calls2: string[] = [];
+
+    subscriber.on("user.created", (payload) => { calls1.push(payload.userId); });
+    subscriber.on("user.created", (payload) => { calls2.push(payload.userId); });
+    await subscriber.subscribe();
+
+    transport.simulateMessage("user.created", {
+      userId: "123",
+      email: "test@example.com",
+    });
+    await waitForAsync();
+
+    expect(calls1).toEqual(["123"]);
+    expect(calls2).toEqual(["123"]);
+  });
+
+  test("unsubscribe removes only specific handler", async () => {
+    const calls1: string[] = [];
+    const calls2: string[] = [];
+
+    const unsub1 = subscriber.on("user.created", (payload) => { calls1.push(payload.userId); });
+    subscriber.on("user.created", (payload) => { calls2.push(payload.userId); });
+    await subscriber.subscribe();
+
+    transport.simulateMessage("user.created", {
+      userId: "123",
+      email: "test@example.com",
+    });
+    await waitForAsync();
+    expect(calls1).toEqual(["123"]);
+    expect(calls2).toEqual(["123"]);
+
+    unsub1();
+
+    transport.simulateMessage("user.created", {
+      userId: "456",
+      email: "test2@example.com",
+    });
+    await waitForAsync();
+    expect(calls1).toEqual(["123"]); // not called again
+    expect(calls2).toEqual(["123", "456"]); // still receives
+  });
+
+  test("transport subscription removed when last handler unsubscribes", async () => {
+    const unsub1 = subscriber.on("user.created", () => {});
+    const unsub2 = subscriber.on("user.created", () => {});
+    await subscriber.subscribe();
+
+    expect(transport._handlers.has("user.created")).toBe(true);
+
+    unsub1();
+    // Still one handler left, transport subscription should remain
+    expect(transport._handlers.has("user.created")).toBe(true);
+
+    unsub2();
+    // Last handler removed, transport subscription should be cleaned up
+    expect(transport._handlers.has("user.created")).toBe(false);
+  });
+
+  test("on() auto-subscribes after subscribe() (late-binding)", async () => {
+    subscriber.on("user.created", () => {});
+    await subscriber.subscribe();
+
+    // Now register a new handler after subscribe()
+    const lateCalls: string[] = [];
+    subscriber.on("user.created", (payload) => { lateCalls.push(payload.userId); });
+
+    // The transport subscription already exists, so late handler should receive messages
+    transport.simulateMessage("user.created", {
+      userId: "late-123",
+      email: "late@example.com",
+    });
+    await waitForAsync();
+
+    expect(lateCalls).toEqual(["late-123"]);
+  });
+
+  test("one handler error does not affect other handlers", async () => {
+    const errors: Error[] = [];
+    const calls: string[] = [];
+
+    const errorSubscriber = new Subscriber({
+      events,
+      transport,
+      onError: (err) => errors.push(err),
+    });
+
+    errorSubscriber.on("user.created", () => {
+      throw new Error("handler 1 failed");
+    });
+    errorSubscriber.on("user.created", (payload) => {
+      calls.push(payload.userId);
+    });
+
+    await errorSubscriber.subscribe();
+
+    transport.simulateMessage("user.created", {
+      userId: "123",
+      email: "test@example.com",
+    });
+    await waitForAsync();
+
+    expect(errors.length).toBe(1);
+    expect(errors[0]!.message).toBe("handler 1 failed");
+    expect(calls).toEqual(["123"]);
   });
 });
 
@@ -598,16 +738,16 @@ describe("Subscriber Middleware", () => {
     await subscriber.subscribe();
 
     // Simulate same message twice (with same messageId)
-    const handler = transport._handlers.get("user.created");
-    if (handler) {
+    const handlerSet = transport._handlers.get("user.created");
+    if (handlerSet) {
       const message = {
         channel: "user.created",
         payload: { userId: "123", email: "test@example.com" },
         messageId: "unique-message-id-1",
       };
-      handler(message);
+      for (const h of handlerSet) { h(message); }
       await waitForAsync();
-      handler(message);
+      for (const h of handlerSet) { h(message); }
       await waitForAsync();
     }
 
