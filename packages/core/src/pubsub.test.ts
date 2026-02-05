@@ -41,11 +41,11 @@ function createMockSchema<T>(validator: (value: unknown) => T): StandardSchema<T
 // Mock transport with message simulation
 function createMockTransport(): Transport & {
   _state: ConnectionState;
-  _handlers: Map<string, TransportMessageHandler>;
+  _handlers: Map<string, Set<TransportMessageHandler>>;
   _published: Array<{ channel: string; payload: unknown }>;
   simulateMessage: (channel: string, payload: unknown) => void;
 } {
-  const handlers = new Map<string, TransportMessageHandler>();
+  const handlers = new Map<string, Set<TransportMessageHandler>>();
   const published: Array<{ channel: string; payload: unknown }> = [];
 
   const transport = {
@@ -74,9 +74,20 @@ function createMockTransport(): Transport & {
       channel: string,
       handler: TransportMessageHandler
     ) {
-      handlers.set(channel, handler);
+      let set = handlers.get(channel);
+      if (!set) {
+        set = new Set();
+        handlers.set(channel, set);
+      }
+      set.add(handler);
       return () => {
-        handlers.delete(channel);
+        const s = handlers.get(channel);
+        if (s) {
+          s.delete(handler);
+          if (s.size === 0) {
+            handlers.delete(channel);
+          }
+        }
       };
     }),
     publish: mock(async function (
@@ -90,14 +101,16 @@ function createMockTransport(): Transport & {
     on: mock(() => {}),
     off: mock(() => {}),
     simulateMessage(channel: string, payload: unknown) {
-      const handler = handlers.get(channel);
-      if (handler) {
+      const set = handlers.get(channel);
+      if (set) {
         const message: TransportMessage = {
           channel,
           payload,
           messageId: generateMessageId(),
         };
-        handler(message);
+        for (const handler of set) {
+          handler(message);
+        }
       }
     },
   };
@@ -239,7 +252,7 @@ describe("PubSub", () => {
     expect(calls).toContain("received");
   });
 
-  test("off removes handler", async () => {
+  test("off removes handler and transport subscription", async () => {
     const calls: number[] = [];
 
     pubsub.on("message.received", () => { calls.push(1); });
@@ -256,6 +269,27 @@ describe("PubSub", () => {
 
     pubsub.off("message.received");
 
+    // Transport subscription should be removed
+    expect(transport._handlers.has("message.received")).toBe(false);
+  });
+
+  test("on() returns unsubscribe function", async () => {
+    const calls: number[] = [];
+
+    const unsub = pubsub.on("message.received", () => { calls.push(1); });
+    await pubsub.start();
+
+    transport.simulateMessage("message.received", {
+      id: "1",
+      text: "Test",
+      timestamp: Date.now(),
+    });
+
+    await waitForAsync();
+    expect(calls.length).toBe(1);
+
+    unsub();
+
     transport.simulateMessage("message.received", {
       id: "2",
       text: "Test2",
@@ -263,7 +297,7 @@ describe("PubSub", () => {
     });
 
     await waitForAsync();
-    // Handler was removed, call count stays same
+    expect(calls.length).toBe(1);
   });
 
   test("getPublisher returns publisher interface", () => {

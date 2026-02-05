@@ -74,16 +74,42 @@ const subscriber = new Subscriber({
 
 ### Single Handler
 
+`on()` returns an unsubscribe function that removes that specific handler:
+
 ```typescript
-subscriber.on("user.created", (payload, context) => {
+const unsubscribe = subscriber.on("user.created", (payload, context) => {
   // Handle the event
 });
+
+// Later, remove just this handler
+unsubscribe();
 ```
 
-### Multiple Handlers
+### Multiple Handlers Per Event
+
+You can register multiple handlers for the same event. Each receives its own copy of the message independently:
 
 ```typescript
-subscriber.onMany({
+const unsub1 = subscriber.on("user.created", (payload) => {
+  console.log("Handler 1:", payload.userId);
+});
+
+const unsub2 = subscriber.on("user.created", (payload) => {
+  analytics.track("user_created", { userId: payload.userId });
+});
+
+// Remove only the first handler — the second keeps receiving events
+unsub1();
+```
+
+If one handler throws an error, the other handlers still execute.
+
+### Register Multiple Event Handlers
+
+`onMany()` returns a single unsubscribe function that removes all registered handlers:
+
+```typescript
+const unsubscribe = subscriber.onMany({
   "user.created": (payload) => {
     console.log("User created:", payload.userId);
   },
@@ -94,9 +120,14 @@ subscriber.onMany({
     console.log("User deleted:", payload.userId);
   },
 });
+
+// Remove all three handlers at once
+unsubscribe();
 ```
 
-### Remove Handler
+### Remove All Handlers for an Event
+
+`off()` removes all handlers registered for a given event and tears down the transport subscription:
 
 ```typescript
 subscriber.off("user.created");
@@ -271,7 +302,7 @@ subscriber.on("order.placed", async (payload, { publisher }) => {
 
 ```typescript
 // Register handlers before subscribing
-subscriber.on("user.created", handler);
+const unsub = subscriber.on("user.created", handler);
 
 // Start subscribing
 await subscriber.subscribe();
@@ -280,7 +311,13 @@ await subscriber.subscribe();
 console.log(subscriber.state);       // "connected"
 console.log(subscriber.isConnected); // true
 
-// Stop subscribing
+// Add handlers after subscribe() — they auto-subscribe (late-binding)
+const unsub2 = subscriber.on("order.placed", orderHandler);
+
+// Remove individual handlers at any time
+unsub();
+
+// Stop subscribing (tears down all transport subscriptions)
 await subscriber.unsubscribe();
 ```
 

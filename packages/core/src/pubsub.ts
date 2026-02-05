@@ -11,6 +11,7 @@ import type {
   HandlerMap,
   PublisherInterface,
   PublishOptions,
+  UnsubscribeFn,
 } from "./types/handler";
 import { Publisher, type PublishMiddleware } from "./publisher";
 import { Subscriber, type SubscriberErrorHandler } from "./subscriber";
@@ -96,6 +97,7 @@ export class PubSub<
 
   /**
    * Register a handler for an event
+   * Returns an unsubscribe function that removes this specific handler
    */
   on<TEventName extends EventNames<TSubscribeEvents>>(
     eventName: TEventName,
@@ -104,23 +106,22 @@ export class PubSub<
       TContext,
       PublisherInterface<TPublishEvents>
     >
-  ): this {
-    this.subscriber.on(eventName, handler);
-    return this;
+  ): UnsubscribeFn {
+    return this.subscriber.on(eventName, handler);
   }
 
   /**
-   * Remove a handler for an event
+   * Remove all handlers for an event
    */
   off<TEventName extends EventNames<TSubscribeEvents>>(
     eventName: TEventName
-  ): this {
+  ): void {
     this.subscriber.off(eventName);
-    return this;
   }
 
   /**
    * Register multiple handlers at once
+   * Returns an unsubscribe function that removes all registered handlers
    */
   onMany(
     handlers: HandlerMap<
@@ -128,9 +129,8 @@ export class PubSub<
       TContext,
       PublisherInterface<TPublishEvents>
     >
-  ): this {
-    this.subscriber.onMany(handlers);
-    return this;
+  ): UnsubscribeFn {
+    return this.subscriber.onMany(handlers);
   }
 
   /**
