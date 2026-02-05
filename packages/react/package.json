@@ -1,6 +1,6 @@
 {
   "name": "@pubsubjs/react",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "React hooks and bindings for @pubsubjs/core",
   "type": "module",
   "main": "./dist/index.js",
