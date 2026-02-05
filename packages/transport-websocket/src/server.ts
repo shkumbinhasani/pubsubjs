@@ -37,10 +37,10 @@ export interface WebSocketServerOptions {
   readonly maxPayloadLength?: number;
   /** Idle timeout in seconds */
   readonly idleTimeout?: number;
-  /** Custom upgrade handler to extract user data */
+  /** Custom upgrade handler to extract user data (merged with auto-generated connectionId and subscriptions) */
   readonly onUpgrade?: (
     req: Request
-  ) => WebSocketData | Promise<WebSocketData>;
+  ) => Record<string, unknown> | Promise<Record<string, unknown>>;
 }
 
 /**

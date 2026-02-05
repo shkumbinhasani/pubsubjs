@@ -89,10 +89,10 @@ type ConnectionState = "disconnected" | "connecting" | "connected" | "reconnecti
 Monitor connection state:
 
 ```typescript
-transport.on("connect", () => console.log("Connected"));
-transport.on("disconnect", () => console.log("Disconnected"));
-transport.on("reconnecting", () => console.log("Reconnecting..."));
-transport.on("error", (error) => console.error("Error:", error));
+transport.on("connect", ({ connectionId }) => console.log(`Connected: ${connectionId}`));
+transport.on("disconnect", ({ connectionId }) => console.log(`Disconnected: ${connectionId}`));
+transport.on("reconnecting", ({ attempt }) => console.log(`Reconnecting... attempt ${attempt}`));
+transport.on("error", ({ error }) => console.error("Error:", error));
 ```
 
 ## Auto-Reconnection

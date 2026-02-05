@@ -118,20 +118,20 @@ const subscriber = new Subscriber({ events, transport });
 Listen to transport events:
 
 ```typescript
-transport.on("connect", () => {
-  console.log("Transport connected");
+transport.on("connect", ({ connectionId }) => {
+  console.log(`Transport connected: ${connectionId}`);
 });
 
-transport.on("disconnect", () => {
-  console.log("Transport disconnected");
+transport.on("disconnect", ({ connectionId }) => {
+  console.log(`Transport disconnected: ${connectionId}`);
 });
 
-transport.on("error", (error) => {
+transport.on("error", ({ error }) => {
   console.error("Transport error:", error);
 });
 
-transport.on("reconnecting", () => {
-  console.log("Transport reconnecting...");
+transport.on("reconnecting", ({ attempt }) => {
+  console.log(`Transport reconnecting... attempt ${attempt}`);
 });
 ```
 

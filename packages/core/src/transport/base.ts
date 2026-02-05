@@ -3,6 +3,7 @@ import type {
   TransportCapabilities,
   TransportEvent,
   TransportEventHandler,
+  TransportEventMap,
   TransportMessageHandler,
   TransportPublishOptions,
   TransportSubscribeOptions,
@@ -20,10 +21,8 @@ export abstract class BaseTransport implements Transport {
   abstract readonly capabilities: TransportCapabilities;
 
   protected _state: ConnectionState = "disconnected";
-  private readonly eventHandlers = new Map<
-    TransportEvent,
-    Set<TransportEventHandler>
-  >();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private readonly eventHandlers = new Map<TransportEvent, Set<TransportEventHandler<any>>>();
 
   get state(): ConnectionState {
     return this._state;
@@ -33,13 +32,13 @@ export abstract class BaseTransport implements Transport {
     this._state = state;
 
     if (state === "connected") {
-      this.emit("connect");
+      this.emit("connect", {});
     } else if (state === "disconnected") {
-      this.emit("disconnect");
+      this.emit("disconnect", {});
     } else if (state === "reconnecting") {
-      this.emit("reconnecting");
+      this.emit("reconnecting", {});
     } else if (state === "error") {
-      this.emit("error");
+      this.emit("error", {});
     }
   }
 
@@ -83,7 +82,10 @@ export abstract class BaseTransport implements Transport {
     options?: TransportPublishOptions
   ): Promise<void>;
 
-  on(event: TransportEvent, handler: TransportEventHandler): void {
+  on<E extends TransportEvent>(
+    event: E,
+    handler: TransportEventHandler<TransportEventMap[E]>
+  ): void {
     let handlers = this.eventHandlers.get(event);
     if (!handlers) {
       handlers = new Set();
@@ -92,14 +94,17 @@ export abstract class BaseTransport implements Transport {
     handlers.add(handler);
   }
 
-  off(event: TransportEvent, handler: TransportEventHandler): void {
+  off<E extends TransportEvent>(
+    event: E,
+    handler: TransportEventHandler<TransportEventMap[E]>
+  ): void {
     const handlers = this.eventHandlers.get(event);
     if (handlers) {
       handlers.delete(handler);
     }
   }
 
-  protected emit(event: TransportEvent, data?: unknown): void {
+  protected emit<E extends TransportEvent>(event: E, data?: TransportEventMap[E]): void {
     const handlers = this.eventHandlers.get(event);
     if (handlers) {
       for (const handler of handlers) {

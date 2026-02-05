@@ -183,15 +183,15 @@ const subscriber = new Subscriber({
 
 ```typescript
 // Monitor Redis connection
-transport.on("connect", () => {
+transport.on("connect", ({}) => {
   metrics.gauge("redis_connected", 1);
 });
 
-transport.on("disconnect", () => {
+transport.on("disconnect", ({}) => {
   metrics.gauge("redis_connected", 0);
 });
 
-transport.on("error", (error) => {
+transport.on("error", ({ error }) => {
   metrics.counter("redis_errors", 1);
   logger.error("Redis error:", error);
 });

@@ -21,6 +21,10 @@ export default defineConfig({
 					],
 				},
 				{
+					label: 'Changelog',
+					link: '/changelog/',
+				},
+				{
 					label: 'Core Concepts',
 					items: [
 						{ label: 'Events & Schemas', slug: 'concepts/events' },

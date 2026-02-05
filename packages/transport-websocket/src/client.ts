@@ -136,7 +136,7 @@ export class WebSocketClientTransport extends BaseTransport {
 
         this.ws.onerror = (event) => {
           const error = new Error("WebSocket error");
-          this.emit("error", error);
+          this.emit("error", { error });
           if (this._state === "connecting") {
             reject(error);
           }
