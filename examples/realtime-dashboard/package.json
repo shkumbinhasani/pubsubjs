@@ -1,7 +1,7 @@
 {
   "private": true,
   "name": "@pubsub-examples/realtime-dashboard",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "type": "module",
   "scripts": {
     "start": "bun run server.ts",
