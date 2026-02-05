@@ -1,0 +1,209 @@
+---
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+// Read changelog files from packages at build time
+const packagesDir = join(process.cwd(), '..', 'packages');
+
+const packages = [
+  { name: '@pubsubjs/core', dir: 'core' },
+  { name: '@pubsubjs/transport-websocket', dir: 'transport-websocket' },
+  { name: '@pubsubjs/transport-redis', dir: 'transport-redis' },
+  { name: '@pubsubjs/transport-sse', dir: 'transport-sse' },
+  { name: '@pubsubjs/react', dir: 'react' },
+];
+
+const changelogs = packages.map(pkg => {
+  try {
+    const content = readFileSync(join(packagesDir, pkg.dir, 'CHANGELOG.md'), 'utf-8');
+    // Remove the first heading (package name) since we'll display it ourselves
+    const lines = content.split('\n');
+    const contentWithoutTitle = lines.slice(2).join('\n');
+    return { ...pkg, content: contentWithoutTitle, error: null };
+  } catch (e) {
+    return { ...pkg, content: '', error: 'No changelog found' };
+  }
+});
+
+// Parse markdown to extract versions
+function parseChangelog(content: string) {
+  const versions: { version: string; changes: string }[] = [];
+  const lines = content.split('\n');
+  let currentVersion = '';
+  let currentChanges: string[] = [];
+
+  for (const line of lines) {
+    if (line.startsWith('## ')) {
+      if (currentVersion) {
+        versions.push({ version: currentVersion, changes: currentChanges.join('\n') });
+      }
+      currentVersion = line.replace('## ', '');
+      currentChanges = [];
+    } else if (currentVersion) {
+      currentChanges.push(line);
+    }
+  }
+
+  if (currentVersion) {
+    versions.push({ version: currentVersion, changes: currentChanges.join('\n') });
+  }
+
+  return versions;
+}
+---
+
+<StarlightPage
+  frontmatter={{
+    title: 'Changelog',
+    description: 'Release notes and version history for PubSubJS packages',
+  }}
+>
+  <p>
+    All notable changes to PubSubJS packages are documented here. This project uses{' '}
+    <a href="https://github.com/changesets/changesets">Changesets</a> for versioning.
+  </p>
+
+  <div class="changelog-tabs">
+    {packages.map((pkg, index) => (
+      <button
+        class={`tab-button ${index === 0 ? 'active' : ''}`}
+        data-tab={pkg.dir}
+      >
+        {pkg.dir === 'core' ? 'Core' :
+         pkg.dir === 'transport-websocket' ? 'WebSocket' :
+         pkg.dir === 'transport-redis' ? 'Redis' :
+         pkg.dir === 'transport-sse' ? 'SSE' : 'React'}
+      </button>
+    ))}
+  </div>
+
+  {changelogs.map((changelog, index) => (
+    <div
+      class={`tab-content ${index === 0 ? 'active' : ''}`}
+      data-tab-content={changelog.dir}
+    >
+      <h2>{changelog.name}</h2>
+      {changelog.error ? (
+        <p><em>{changelog.error}</em></p>
+      ) : (
+        parseChangelog(changelog.content).map(({ version, changes }) => (
+          <div class="version-block">
+            <h3>{version}</h3>
+            <div class="changes" set:html={changes
+              .replace(/### (.*)/g, '<h4>$1</h4>')
+              .replace(/- `([^`]+)`:/g, '<li><code>$1</code>:')
+              .replace(/- ([^\n]+)/g, '<li>$1</li>')
+              .replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
+              .replace(/`([^`]+)`/g, '<code>$1</code>')
+              .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+            } />
+          </div>
+        ))
+      )}
+    </div>
+  ))}
+
+  <style>
+    .changelog-tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin: 1.5rem 0;
+      flex-wrap: wrap;
+    }
+
+    .tab-button {
+      padding: 0.5rem 1rem;
+      border: 1px solid var(--sl-color-gray-5);
+      background: var(--sl-color-gray-6);
+      color: var(--sl-color-text);
+      border-radius: 0.5rem;
+      cursor: pointer;
+      font-size: 0.875rem;
+      transition: all 0.2s;
+    }
+
+    .tab-button:hover {
+      background: var(--sl-color-gray-5);
+    }
+
+    .tab-button.active {
+      background: var(--sl-color-accent);
+      color: var(--sl-color-accent-contrast);
+      border-color: var(--sl-color-accent);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .version-block {
+      margin: 1.5rem 0;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--sl-color-gray-5);
+    }
+
+    .version-block:last-child {
+      border-bottom: none;
+    }
+
+    .version-block h3 {
+      color: var(--sl-color-accent);
+      margin-bottom: 0.5rem;
+    }
+
+    .changes h4 {
+      margin: 1rem 0 0.5rem;
+      font-size: 1rem;
+    }
+
+    .changes ul {
+      margin: 0.5rem 0;
+      padding-left: 1.5rem;
+    }
+
+    .changes li {
+      margin: 0.25rem 0;
+    }
+
+    .changes code {
+      background: var(--sl-color-gray-6);
+      padding: 0.1rem 0.3rem;
+      border-radius: 0.25rem;
+      font-size: 0.875em;
+    }
+
+    .changes pre {
+      background: var(--sl-color-gray-6);
+      padding: 1rem;
+      border-radius: 0.5rem;
+      overflow-x: auto;
+      margin: 0.5rem 0;
+    }
+
+    .changes pre code {
+      background: none;
+      padding: 0;
+    }
+  </style>
+
+  <script>
+    document.querySelectorAll('.tab-button').forEach(button => {
+      button.addEventListener('click', () => {
+        const tab = button.getAttribute('data-tab');
+
+        // Update active button
+        document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+        button.classList.add('active');
+
+        // Update active content
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.querySelector(`[data-tab-content="${tab}"]`)?.classList.add('active');
+      });
+    });
+  </script>
+</StarlightPage>
