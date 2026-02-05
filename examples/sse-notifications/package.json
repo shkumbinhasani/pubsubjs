@@ -1,7 +1,7 @@
 {
   "private": true,
   "name": "@pubsub-examples/sse-notifications",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "type": "module",
   "scripts": {
     "start:server": "bun run server.ts",

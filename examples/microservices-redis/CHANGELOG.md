@@ -1,5 +1,13 @@
 # @pubsub-examples/microservices-redis
 
+## 2.0.4
+
+### Patch Changes
+
+- Updated dependencies [5893d56]
+  - @pubsubjs/core@0.2.1
+  - @pubsubjs/transport-redis@0.2.1
+
 ## 2.0.3
 
 ### Patch Changes

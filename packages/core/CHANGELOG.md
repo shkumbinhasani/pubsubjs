@@ -1,5 +1,11 @@
 # @pubsubjs/core
 
+## 0.2.1
+
+### Patch Changes
+
+- 5893d56: Fix npm publishing to use proper semver ranges instead of workspace:\* protocol
+
 ## 0.2.0
 
 ### Minor Changes

@@ -1,7 +1,7 @@
 {
   "private": true,
   "name": "@pubsub-examples/basic-usage",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "type": "module",
   "scripts": {
     "start": "bun run index.ts",
